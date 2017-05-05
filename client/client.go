@@ -12,7 +12,7 @@ import (
 
 // ExtensionManagerClient is a wrapper for the osquery Thrift extensions API.
 type ExtensionManagerClient struct {
-	client    *osquery.ExtensionManagerClient
+	client    osquery.ExtensionManager
 	transport thrift.TTransport
 }
 
@@ -47,6 +47,11 @@ func (c *ExtensionManagerClient) Close() {
 // Ping requests metadata from the extension manager.
 func (c *ExtensionManagerClient) Ping() (*osquery.ExtensionStatus, error) {
 	return c.client.Ping()
+}
+
+// Call requests a call to an extension (or core) registry plugin.
+func (c *ExtensionManagerClient) Call(registry, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
+	return c.client.Call(registry, item, request)
 }
 
 // Extensions requests the list of active registered extensions.

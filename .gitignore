@@ -1,5 +1,7 @@
-example_query
+# Example binaries
+example_*
 
+# Glide vendor directory
 vendor/
 
 ## From https://github.com/github/gitignore/blob/master/Go.gitignore ##

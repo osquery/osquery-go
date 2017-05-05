@@ -10,9 +10,9 @@ import (
 
 func main() {
 	if len(os.Args) != 3 {
-		fmt.Printf(`Usage: %s SOCKET_PATH QUERY\n
+		fmt.Printf(`Usage: %s SOCKET_PATH TABLE_NAME
 
-Requests osqueryd to run the provided query and prints the results.
+Retrieves the columns for the given table by making a call to the plugin.
 `, os.Args[0])
 		os.Exit(1)
 	}
@@ -24,7 +24,7 @@ Requests osqueryd to run the provided query and prints the results.
 	}
 	defer client.Close()
 
-	resp, err := client.Query(os.Args[2])
+	resp, err := client.Call("table", os.Args[2], map[string]string{"action": "columns"})
 	if err != nil {
 		fmt.Println("Error communicating with osqueryd: " + err.Error())
 		os.Exit(1)
