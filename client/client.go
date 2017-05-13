@@ -59,6 +59,11 @@ func (c *ExtensionManagerClient) Extensions() (osquery.InternalExtensionList, er
 	return c.client.Extensions()
 }
 
+// RegisterExtension requests the list of active registered extensions.
+func (c *ExtensionManagerClient) RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+	return c.client.RegisterExtension(info, registry)
+}
+
 // Options requests the list of bootstrap or configuration options.
 func (c *ExtensionManagerClient) Options() (osquery.InternalOptionList, error) {
 	return c.client.Options()
