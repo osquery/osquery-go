@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/kolide/osquery-golang/gen/osquery"
@@ -26,7 +28,27 @@ Registers an example table extension.
 	}
 	serv.RegisterPlugin(&FooTable{})
 
-	fmt.Println(serv.Start())
+	// Shut down server when process killed so that we don't leave the unix
+	// domain socket file on the filesystem.
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, os.Kill, syscall.SIGTERM)
+	go func() {
+		<-sig
+		fmt.Println("Stopping extension server.")
+		err := serv.Shutdown()
+		if err != nil {
+			fmt.Println("Error shutting down server: " + err.Error())
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}()
+
+	fmt.Println("Starting extension server...")
+	err = serv.Start()
+	if err != nil {
+		fmt.Println("Error starting server: " + err.Error())
+		os.Exit(1)
+	}
 }
 
 type FooTable struct{}
