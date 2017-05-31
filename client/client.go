@@ -17,7 +17,7 @@ type ExtensionManagerClient struct {
 }
 
 // NewClient creates a new client communicating to osquery over the socket at
-// the provided path. If resolving the address or the connection to the socket
+// the provided path. If resolving the address or connecting to the socket
 // fails, this function will error.
 func NewClient(sockPath string, timeout time.Duration) (*ExtensionManagerClient, error) {
 	addr, err := net.ResolveUnixAddr("unix", sockPath)
@@ -59,7 +59,7 @@ func (c *ExtensionManagerClient) Extensions() (osquery.InternalExtensionList, er
 	return c.client.Extensions()
 }
 
-// RegisterExtension requests the list of active registered extensions.
+// RegisterExtension registers the extension plugins with the osquery process.
 func (c *ExtensionManagerClient) RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
 	return c.client.RegisterExtension(info, registry)
 }

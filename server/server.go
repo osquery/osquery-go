@@ -13,14 +13,29 @@ import (
 )
 
 type OsqueryPlugin interface {
+	// Name is the name used to refer to the plugin (eg. the name of the
+	// table the plugin implements).
 	Name() string
+	// RegistryName is which "registry" the plugin should be added to.
+	// Valid names are ["config", "logger", "table"].
 	RegistryName() string
+	// Routes returns the detailed information about the interface exposed
+	// by the plugin. See the example plugins for samples.
 	Routes() osquery.ExtensionPluginResponse
+	// Ping implements a health check for the plugin. If the plugin is in a
+	// healthy state, osquery.ExtensionStatus{Code: 0, Message: "OK"}
+	// should be returned.
 	Ping() osquery.ExtensionStatus
+	// Call requests the plugin to perform its defined behavior, returning
+	// a response containing the result.
 	Call(osquery.ExtensionPluginRequest) osquery.ExtensionResponse
+	// Shutdown alerts the plugin to stop.
 	Shutdown()
 }
 
+// ExtensionManagerServer is an implementation of the full ExtensionManager
+// API. Plugins can register with an extension manager, which handles the
+// communication with the osquery process.
 type ExtensionManagerServer struct {
 	name         string
 	sockPath     string
@@ -30,22 +45,40 @@ type ExtensionManagerServer struct {
 	transport    thrift.TServerTransport
 }
 
+var validRegistryNames = map[string]bool{
+	"table":  true,
+	"logger": true,
+	"config": true,
+}
+
+// NewExtensionManagerServer creates a new extension management server
+// communicating with osquery over the socket at the provided path. If
+// resolving the address or connecting to the socket fails, this function will
+// error.
 func NewExtensionManagerServer(name string, sockPath string, timeout time.Duration) (*ExtensionManagerServer, error) {
 	serverClient, err := client.NewClient(sockPath, timeout)
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialize nested registry maps
+	registry := make(map[string](map[string]OsqueryPlugin))
+	for reg, _ := range validRegistryNames {
+		registry[reg] = make(map[string]OsqueryPlugin)
+	}
+
 	return &ExtensionManagerServer{
 		name:         name,
 		sockPath:     sockPath,
 		serverClient: serverClient,
-		registry:     make(map[string](map[string]OsqueryPlugin)),
+		registry:     registry,
 	}, nil
 }
 
+// RegisterPlugin adds an OsqueryPlugin to this extension manager.
 func (s *ExtensionManagerServer) RegisterPlugin(plugin OsqueryPlugin) {
-	if s.registry[plugin.RegistryName()] == nil {
-		s.registry[plugin.RegistryName()] = make(map[string]OsqueryPlugin)
+	if !validRegistryNames[plugin.RegistryName()] {
+		panic("invalid registry name: " + plugin.RegistryName())
 	}
 	s.registry[plugin.RegistryName()][plugin.Name()] = plugin
 }
@@ -61,6 +94,9 @@ func (s *ExtensionManagerServer) genRegistry() osquery.ExtensionRegistry {
 	return registry
 }
 
+// Start registers the extension plugins and begins listening on a unix socket
+// for requests from the osquery process. All plugins should be registered with
+// RegisterPlugin() before calling Start().
 func (s *ExtensionManagerServer) Start() error {
 	registry := s.genRegistry()
 
@@ -96,10 +132,13 @@ func (s *ExtensionManagerServer) Start() error {
 	return s.server.Serve()
 }
 
+// Ping implements the basic health check.
 func (s *ExtensionManagerServer) Ping() (*osquery.ExtensionStatus, error) {
 	return &osquery.ExtensionStatus{Code: 0, Message: "OK"}, nil
 }
 
+// Call routes a call from the osquery process to the appropriate registered
+// plugin.
 func (s *ExtensionManagerServer) Call(registry string, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
 	subreg, ok := s.registry[registry]
 	if !ok {
@@ -125,6 +164,7 @@ func (s *ExtensionManagerServer) Call(registry string, item string, request osqu
 	return &response, nil
 }
 
+// Shutdown stops the server and closes the listening socket.
 func (s *ExtensionManagerServer) Shutdown() error {
 	if s.server != nil {
 		err := s.server.Stop()
