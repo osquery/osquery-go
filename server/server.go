@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
@@ -28,7 +29,7 @@ type OsqueryPlugin interface {
 	Ping() osquery.ExtensionStatus
 	// Call requests the plugin to perform its defined behavior, returning
 	// a response containing the result.
-	Call(osquery.ExtensionPluginRequest) osquery.ExtensionResponse
+	Call(context.Context, osquery.ExtensionPluginRequest) osquery.ExtensionResponse
 	// Shutdown alerts the plugin to stop.
 	Shutdown()
 }
@@ -45,6 +46,8 @@ type ExtensionManagerServer struct {
 	transport    thrift.TServerTransport
 }
 
+// validRegistryNames contains the allowable RegistryName() values. If a plugin
+// attempts to register with another value, the program will panic.
 var validRegistryNames = map[string]bool{
 	"table":  true,
 	"logger": true,
@@ -160,20 +163,31 @@ func (s *ExtensionManagerServer) Call(registry string, item string, request osqu
 		}, nil
 	}
 
-	response := plugin.Call(request)
+	response := plugin.Call(context.Background(), request)
 	return &response, nil
 }
 
 // Shutdown stops the server and closes the listening socket.
 func (s *ExtensionManagerServer) Shutdown() error {
+	defer func() {
+		s.server = nil
+	}()
 	if s.server != nil {
 		err := s.server.Stop()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "stopping server")
 		}
 	}
+
+	defer func() {
+		s.transport = nil
+	}()
 	if s.transport != nil {
-		return s.transport.Close()
+		err := s.transport.Close()
+		if err != nil {
+			return errors.Wrap(err, "closing transport")
+		}
 	}
+
 	return nil
 }

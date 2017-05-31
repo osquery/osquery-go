@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -49,7 +50,7 @@ func (f *FooTable) Ping() osquery.ExtensionStatus {
 	return osquery.ExtensionStatus{Code: 0, Message: "OK"}
 }
 
-func (f *FooTable) Call(request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
+func (f *FooTable) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
 	switch request["action"] {
 	case "generate":
 		return osquery.ExtensionResponse{
