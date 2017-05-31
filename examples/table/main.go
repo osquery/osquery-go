@@ -40,8 +40,8 @@ func (f *FooTable) RegistryName() string {
 
 func (f *FooTable) Routes() osquery.ExtensionPluginResponse {
 	return []map[string]string{
-		{"id": "column", "name": "foo", "type": "string", "op": "0"},
-		{"id": "column", "name": "bar", "type": "string", "op": "0"},
+		{"id": "column", "name": "foo", "type": "TEXT", "op": "0"},
+		{"id": "column", "name": "bar", "type": "TEXT", "op": "0"},
 	}
 }
 

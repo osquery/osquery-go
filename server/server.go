@@ -86,7 +86,7 @@ func (s *ExtensionManagerServer) Start() error {
 
 	processor := osquery.NewExtensionProcessor(s)
 
-	s.transport, err = thrift.NewTServerSocket(addr.String())
+	s.transport = thrift.NewTServerSocketFromAddrTimeout(addr, 0)
 	if err != nil {
 		return errors.Wrapf(err, "opening server socket (%s)", addr)
 	}
