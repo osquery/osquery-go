@@ -12,12 +12,12 @@ import (
 
 // ExtensionManagerClient is a wrapper for the osquery Thrift extensions API.
 type ExtensionManagerClient struct {
-	client    *osquery.ExtensionManagerClient
+	client    osquery.ExtensionManager
 	transport thrift.TTransport
 }
 
 // NewClient creates a new client communicating to osquery over the socket at
-// the provided path. If resolving the address or the connection to the socket
+// the provided path. If resolving the address or connecting to the socket
 // fails, this function will error.
 func NewClient(sockPath string, timeout time.Duration) (*ExtensionManagerClient, error) {
 	addr, err := net.ResolveUnixAddr("unix", sockPath)
@@ -49,9 +49,19 @@ func (c *ExtensionManagerClient) Ping() (*osquery.ExtensionStatus, error) {
 	return c.client.Ping()
 }
 
+// Call requests a call to an extension (or core) registry plugin.
+func (c *ExtensionManagerClient) Call(registry, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
+	return c.client.Call(registry, item, request)
+}
+
 // Extensions requests the list of active registered extensions.
 func (c *ExtensionManagerClient) Extensions() (osquery.InternalExtensionList, error) {
 	return c.client.Extensions()
+}
+
+// RegisterExtension registers the extension plugins with the osquery process.
+func (c *ExtensionManagerClient) RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+	return c.client.RegisterExtension(info, registry)
 }
 
 // Options requests the list of bootstrap or configuration options.
