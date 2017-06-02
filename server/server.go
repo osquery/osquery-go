@@ -24,8 +24,7 @@ type OsqueryPlugin interface {
 	// by the plugin. See the example plugins for samples.
 	Routes() osquery.ExtensionPluginResponse
 	// Ping implements a health check for the plugin. If the plugin is in a
-	// healthy state, osquery.ExtensionStatus{Code: 0, Message: "OK"}
-	// should be returned.
+	// healthy state, StatusOK should be returned.
 	Ping() osquery.ExtensionStatus
 	// Call requests the plugin to perform its defined behavior, returning
 	// a response containing the result.
@@ -53,6 +52,10 @@ var validRegistryNames = map[string]bool{
 	"logger": true,
 	"config": true,
 }
+
+// StatusOK is an osquery.ExtensionStatus to be returned when the operation was
+// successful.
+var StatusOK = osquery.ExtensionStatus{Code: 0, Message: "OK"}
 
 // NewExtensionManagerServer creates a new extension management server
 // communicating with osquery over the socket at the provided path. If
@@ -137,7 +140,7 @@ func (s *ExtensionManagerServer) Start() error {
 
 // Ping implements the basic health check.
 func (s *ExtensionManagerServer) Ping() (*osquery.ExtensionStatus, error) {
-	return &osquery.ExtensionStatus{Code: 0, Message: "OK"}, nil
+	return &StatusOK, nil
 }
 
 // Call routes a call from the osquery process to the appropriate registered
