@@ -27,7 +27,7 @@ type TablePlugin interface {
 // NewTablePlugin takes a value that implements TablePlugin and wraps it with
 // the appropriate methods to satisfy the OsqueryPlugin interface. Use this to
 // easily create plugins implementing osquery tables.
-func NewTablePlugin(plugin TablePlugin) OsqueryPlugin {
+func NewTablePlugin(plugin TablePlugin) *tablePluginImpl {
 	return &tablePluginImpl{plugin}
 }
 
@@ -35,6 +35,7 @@ type tablePluginImpl struct {
 	plugin TablePlugin
 }
 
+// Ensure tablePluginImpl implements the OsqueryPlugin interface.
 var _ OsqueryPlugin = (*tablePluginImpl)(nil)
 
 func (t *tablePluginImpl) Name() string {
@@ -79,7 +80,6 @@ func (t *tablePluginImpl) Call(ctx context.Context, request osquery.ExtensionPlu
 		}
 
 		rows, err := t.plugin.Generate(ctx, queryContext)
-
 		if err != nil {
 			return osquery.ExtensionResponse{
 				Status: &osquery.ExtensionStatus{
@@ -114,21 +114,22 @@ func (t *tablePluginImpl) Call(ctx context.Context, request osquery.ExtensionPlu
 func (t *tablePluginImpl) Shutdown() {}
 
 // ColumnDefinition defines the relevant information for a column in a table
-// plugin. Both values are mandatory.
+// plugin. Both values are mandatory. Prefer using the *Column helpers to
+// create ColumnDefinition structs.
 type ColumnDefinition struct {
 	Name string
 	Type ColumnType
 }
 
-// StringColumn is a helper for defining columns containing strings.
-func StringColumn(name string) ColumnDefinition {
+// TextColumn is a helper for defining columns containing strings.
+func TextColumn(name string) ColumnDefinition {
 	return ColumnDefinition{
 		Name: name,
-		Type: ColumnTypeString,
+		Type: ColumnTypeText,
 	}
 }
 
-// StringColumn is a helper for defining columns containing integers.
+// IntegerColumn is a helper for defining columns containing integers.
 func IntegerColumn(name string) ColumnDefinition {
 	return ColumnDefinition{
 		Name: name,
@@ -136,12 +137,31 @@ func IntegerColumn(name string) ColumnDefinition {
 	}
 }
 
+// BigIntColumn is a helper for defining columns containing big integers.
+func BigIntColumn(name string) ColumnDefinition {
+	return ColumnDefinition{
+		Name: name,
+		Type: ColumnTypeBigInt,
+	}
+}
+
+// DoubleColumn is a helper for defining columns containing floating point
+// values.
+func DoubleColumn(name string) ColumnDefinition {
+	return ColumnDefinition{
+		Name: name,
+		Type: ColumnTypeDouble,
+	}
+}
+
 // ColumnType is a strongly typed representation of the data type string for a
-// column definition.
+// column definition. The named constants should be used.
 type ColumnType string
 
-// ColumnTypeString is used for columns containing strings.
-const ColumnTypeString ColumnType = "TEXT"
-
-// ColumnTypeInteger is used for columns containing integers.
-const ColumnTypeInteger ColumnType = "INTEGER"
+// The following column types are defined in osquery tables.h.
+const (
+	ColumnTypeText    ColumnType = "TEXT"
+	ColumnTypeInteger            = "INTEGER"
+	ColumnTypeBigInt             = "BIGINT"
+	ColumnTypeDouble             = "DOUBLE"
+)
