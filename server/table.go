@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	"github.com/kolide/osquery-golang/gen/osquery"
+	"github.com/pkg/errors"
 )
 
 // TablePlugin is the minimum interface required to implement an osquery table
@@ -66,16 +68,13 @@ func (t *tablePluginImpl) Ping() osquery.ExtensionStatus {
 func (t *tablePluginImpl) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
 	switch request["action"] {
 	case "generate":
-		var queryContext interface{}
-		if ctxJSON, ok := request["context"]; ok {
-			err := json.Unmarshal([]byte(ctxJSON), &queryContext)
-			if err != nil {
-				return osquery.ExtensionResponse{
-					Status: &osquery.ExtensionStatus{
-						Code:    1,
-						Message: "error parsing context JSON: " + err.Error(),
-					},
-				}
+		queryContext, err := parseQueryContext(request["context"])
+		if err != nil {
+			return osquery.ExtensionResponse{
+				Status: &osquery.ExtensionStatus{
+					Code:    1,
+					Message: "error parsing context JSON: " + err.Error(),
+				},
 			}
 		}
 
@@ -165,3 +164,96 @@ const (
 	ColumnTypeBigInt             = "BIGINT"
 	ColumnTypeDouble             = "DOUBLE"
 )
+
+type QueryContext struct {
+	Constraints map[string]ConstraintList
+}
+
+type ConstraintList struct {
+	Affinity    ColumnType
+	Constraints []Constraint
+}
+
+type Constraint struct {
+	Operator   Operator
+	Expression string
+}
+
+type Operator int
+
+const (
+	OperatorEquals              Operator = 2
+	OperatorGreaterThan                  = 4
+	OperatorLessThanOrEquals             = 8
+	OperatorLessThan                     = 16
+	OperatorGreaterThanOrEquals          = 32
+	OperatorMatch                        = 64
+	OperatorLike                         = 65
+	OperatorGlob                         = 66
+	OperatorRegexp                       = 67
+	OperatorUnique                       = 1
+)
+
+type queryContextJSON struct {
+	Constraints []constraintListJSON `json:"constraints"`
+}
+
+type constraintListJSON struct {
+	Name     string          `json:"name"`
+	Affinity string          `json:"affinity"`
+	List     json.RawMessage `json:"list"`
+}
+
+func parseQueryContext(ctxJSON string) (*QueryContext, error) {
+	var parsed queryContextJSON
+
+	err := json.Unmarshal([]byte(ctxJSON), &parsed)
+	if err != nil {
+		return nil, errors.Wrap(err, "unmarshaling context JSON")
+	}
+
+	ctx := QueryContext{map[string]ConstraintList{}}
+	for _, cList := range parsed.Constraints {
+		constraints, err := parseConstraintList(cList.List)
+		if err != nil {
+			return nil, err
+		}
+
+		ctx.Constraints[cList.Name] = ConstraintList{
+			Affinity:    ColumnType(cList.Affinity),
+			Constraints: constraints,
+		}
+	}
+
+	return &ctx, nil
+}
+
+func parseConstraintList(constraints json.RawMessage) ([]Constraint, error) {
+	var str string
+	err := json.Unmarshal(constraints, &str)
+	if err == nil {
+		// string indicates empty list
+		return []Constraint{}, nil
+	}
+
+	var cList []map[string]string
+	err = json.Unmarshal(constraints, &cList)
+	if err != nil {
+		// cannot do anything with other types
+		return nil, errors.Errorf("unexpected context list: %s", string(constraints))
+	}
+
+	cl := []Constraint{}
+	for _, c := range cList {
+		opInt, err := strconv.Atoi(c["op"])
+		if err != nil {
+			return nil, errors.Errorf("parsing operator int: %s", c["op"])
+		}
+
+		cl = append(cl, Constraint{
+			Operator:   Operator(opInt),
+			Expression: c["expr"],
+		})
+	}
+	return cl, nil
+}
