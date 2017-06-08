@@ -68,8 +68,7 @@ func (f *ExampleTable) Columns() []server.ColumnDefinition {
 	}
 }
 
-func (f *ExampleTable) Generate(ctx context.Context, queryContext interface{}) ([]map[string]string, error) {
-	fmt.Printf("%+v\n", queryContext)
+func (f *ExampleTable) Generate(ctx context.Context, queryContext server.QueryContext) ([]map[string]string, error) {
 	return []map[string]string{
 		{
 			"text":    "hello world",

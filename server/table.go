@@ -23,7 +23,7 @@ type TablePlugin interface {
 	// should be checked for cancellation if the generation performs a
 	// substantial amount of work. The queryContext argument provides the
 	// deserialized JSON query context from osquery.
-	Generate(ctx context.Context, queryContext interface{}) ([]map[string]string, error)
+	Generate(ctx context.Context, queryContext QueryContext) ([]map[string]string, error)
 }
 
 // NewTablePlugin takes a value that implements TablePlugin and wraps it with
@@ -78,7 +78,7 @@ func (t *tablePluginImpl) Call(ctx context.Context, request osquery.ExtensionPlu
 			}
 		}
 
-		rows, err := t.plugin.Generate(ctx, queryContext)
+		rows, err := t.plugin.Generate(ctx, *queryContext)
 		if err != nil {
 			return osquery.ExtensionResponse{
 				Status: &osquery.ExtensionStatus{
@@ -165,22 +165,33 @@ const (
 	ColumnTypeDouble             = "DOUBLE"
 )
 
+// QueryContext contains the constraints from the WHERE clause of the query,
+// that can optionally be used to optimize the table generation. Note that the
+// osquery SQLite engine will perform the filtering with these constraints, so
+// it is not mandatory that they be used in table generation.
 type QueryContext struct {
+	// Constraints is a map from column name to the details of the
+	// constraints on that column.
 	Constraints map[string]ConstraintList
 }
 
+// ConstraintList contains the details of the constraints for the given column.
 type ConstraintList struct {
 	Affinity    ColumnType
 	Constraints []Constraint
 }
 
+// Constraint contains both an operator and an expression that are applied as
+// constraints in the query.
 type Constraint struct {
 	Operator   Operator
 	Expression string
 }
 
+// Operator is an enum of the osquery operators.
 type Operator int
 
+// The following operators are dfined in osquery tables.h.
 const (
 	OperatorEquals              Operator = 2
 	OperatorGreaterThan                  = 4
@@ -194,6 +205,8 @@ const (
 	OperatorUnique                       = 1
 )
 
+// The following types and functions exist for parsing of the queryContext
+// JSON and are not made public.
 type queryContextJSON struct {
 	Constraints []constraintListJSON `json:"constraints"`
 }

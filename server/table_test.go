@@ -100,6 +100,50 @@ func TestParseQueryContext(t *testing.T) {
 				"text":    ConstraintList{ColumnTypeText, []Constraint{{OperatorEquals, "foo"}}},
 			}},
 		},
+		{
+			json: `
+{
+  "constraints":[
+    {
+      "name":"big_int",
+      "list":"",
+      "affinity":"BIGINT"
+    },
+    {
+      "name":"double",
+      "list":[
+        {
+          "op":"32",
+          "expr":"3.1"
+        }
+      ],
+      "affinity":"DOUBLE"
+    },
+    {
+      "name":"integer",
+      "list":"",
+      "affinity":"INTEGER"
+    },
+    {
+      "name":"text",
+      "list":[
+        {
+          "op":"2",
+          "expr":"foobar"
+        }
+      ],
+      "affinity":"TEXT"
+    }
+  ]
+}
+`,
+			context: QueryContext{map[string]ConstraintList{
+				"big_int": ConstraintList{ColumnTypeBigInt, []Constraint{}},
+				"double":  ConstraintList{ColumnTypeDouble, []Constraint{{OperatorGreaterThanOrEquals, "3.1"}}},
+				"integer": ConstraintList{ColumnTypeInteger, []Constraint{}},
+				"text":    ConstraintList{ColumnTypeText, []Constraint{{OperatorEquals, "foobar"}}},
+			}},
+		},
 	}
 	for _, tt := range testCases {
 		t.Run("", func(t *testing.T) {
