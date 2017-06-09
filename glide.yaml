@@ -1,9 +1,11 @@
 package: github.com/kolide/osquery-golang
 import:
 - package: git.apache.org/thrift.git
-  repo: git@github.com:kolide/thrift.git
   version: server_socket_from_addr
+  repo: git@github.com:kolide/thrift.git
   subpackages:
   - lib/go/thrift
 - package: github.com/pkg/errors
   version: ^0.8.0
+- package: github.com/stretchr/testify
+  version: ^1.1.4

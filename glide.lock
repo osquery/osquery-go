@@ -1,5 +1,5 @@
-hash: 31b2fe29e4396e62453fafb1618baf7f893debf45b62417995ec6d75321f5a41
-updated: 2017-05-31T10:04:03.938325301-07:00
+hash: 2b1b09e160c156fa0b6ce5733a160388dab48e7bce59987ddb053a89cd91dfc4
+updated: 2017-06-06T18:16:54.746095588-07:00
 imports:
 - name: git.apache.org/thrift.git
   version: 891852bb99ce0e280f55ccdb20c5c4be2d14a2ee
@@ -8,4 +8,6 @@ imports:
   - lib/go/thrift
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
 testImports: []

@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kolide/osquery-golang/gen/osquery"
 	"github.com/kolide/osquery-golang/server"
 )
 
@@ -17,16 +16,19 @@ func main() {
 		fmt.Printf(`Usage: %s SOCKET_PATH\n
 
 Registers an example table extension.
+
+This extension provides the "example_table" table. Try 'SELECT * FROM
+example_table' in the osquery process the extension attaches to.
 `, os.Args[0])
 		os.Exit(1)
 	}
 
-	serv, err := server.NewExtensionManagerServer("foobar", os.Args[1], 1*time.Second)
+	serv, err := server.NewExtensionManagerServer("example_table", os.Args[1], 1*time.Second)
 	if err != nil {
 		fmt.Printf("Error creating extension: %v\n", err)
 		os.Exit(1)
 	}
-	serv.RegisterPlugin(&FooTable{})
+	serv.RegisterPlugin(server.NewTablePlugin(&ExampleTable{}))
 
 	// Shut down server when process killed so that we don't leave the unix
 	// domain socket file on the filesystem.
@@ -51,44 +53,28 @@ Registers an example table extension.
 	}
 }
 
-type FooTable struct{}
+type ExampleTable struct{}
 
-func (f *FooTable) Name() string {
-	return "FooTable"
+func (f *ExampleTable) TableName() string {
+	return "example_table"
 }
 
-func (f *FooTable) RegistryName() string {
-	return "table"
+func (f *ExampleTable) Columns() []server.ColumnDefinition {
+	return []server.ColumnDefinition{
+		server.TextColumn("text"),
+		server.IntegerColumn("integer"),
+		server.BigIntColumn("big_int"),
+		server.DoubleColumn("double"),
+	}
 }
 
-func (f *FooTable) Routes() osquery.ExtensionPluginResponse {
+func (f *ExampleTable) Generate(ctx context.Context, queryContext server.QueryContext) ([]map[string]string, error) {
 	return []map[string]string{
-		{"id": "column", "name": "foo", "type": "TEXT", "op": "0"},
-		{"id": "column", "name": "bar", "type": "TEXT", "op": "0"},
-	}
-}
-
-func (f *FooTable) Ping() osquery.ExtensionStatus {
-	return osquery.ExtensionStatus{Code: 0, Message: "OK"}
-}
-
-func (f *FooTable) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
-	switch request["action"] {
-	case "generate":
-		return osquery.ExtensionResponse{
-			Status: &osquery.ExtensionStatus{Code: 0, Message: "OK"},
-			Response: osquery.ExtensionPluginResponse{
-				{"foo": "hello", "bar": "world"},
-				{"foo": "some", "bar": "thing"},
-			},
-		}
-	default:
-		return osquery.ExtensionResponse{
-			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
-			Response: f.Routes(),
-		}
-	}
-}
-
-func (f *FooTable) Shutdown() {
+		{
+			"text":    "hello world",
+			"integer": "123",
+			"big_int": "-1234567890",
+			"double":  "3.14159",
+		},
+	}, nil
 }
