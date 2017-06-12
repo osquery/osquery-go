@@ -55,26 +55,37 @@ example_table' in the osquery process the extension attaches to.
 
 type ExampleTable struct{}
 
+type ExampleTableRow struct {
+	Text     string `column:"text"`
+	NullText *string
+	Integer  int     `column:"integer"`
+	Double   float64 `column:"double"`
+}
+
 func (f *ExampleTable) TableName() string {
 	return "example_table"
 }
 
-func (f *ExampleTable) Columns() []server.ColumnDefinition {
-	return []server.ColumnDefinition{
-		server.TextColumn("text"),
-		server.IntegerColumn("integer"),
-		server.BigIntColumn("big_int"),
-		server.DoubleColumn("double"),
-	}
+func (f *ExampleTable) Columns() interface{} {
+	return ExampleTableRow{}
 }
 
-func (f *ExampleTable) Generate(ctx context.Context, queryContext server.QueryContext) ([]map[string]string, error) {
-	return []map[string]string{
-		{
-			"text":    "hello world",
-			"integer": "123",
-			"big_int": "-1234567890",
-			"double":  "3.14159",
+func stringPtr(s string) *string {
+	return &s
+}
+
+func (f *ExampleTable) Generate(ctx context.Context, queryContext server.QueryContext) ([]interface{}, error) {
+	return []interface{}{
+		ExampleTableRow{
+			Text:    "hello world",
+			Integer: 1234,
+			Double:  1.2345,
+		},
+		ExampleTableRow{
+			Text:     "hello 2",
+			NullText: stringPtr(""),
+			Integer:  1234,
+			Double:   1.2345,
 		},
 	}, nil
 }
