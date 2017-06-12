@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kolide/osquery-golang/server"
+	"github.com/kolide/osquery-golang"
 )
 
 func main() {
@@ -23,12 +23,12 @@ example_table' in the osquery process the extension attaches to.
 		os.Exit(1)
 	}
 
-	serv, err := server.NewExtensionManagerServer("example_table", os.Args[1], 1*time.Second)
+	serv, err := osquery.NewExtensionManagerServer("example_table", os.Args[1], 1*time.Second)
 	if err != nil {
 		fmt.Printf("Error creating extension: %v\n", err)
 		os.Exit(1)
 	}
-	serv.RegisterPlugin(server.NewTablePlugin(&ExampleTable{}))
+	serv.RegisterPlugin(osquery.NewTablePlugin(&ExampleTable{}))
 
 	// Shut down server when process killed so that we don't leave the unix
 	// domain socket file on the filesystem.
@@ -59,16 +59,16 @@ func (f *ExampleTable) TableName() string {
 	return "example_table"
 }
 
-func (f *ExampleTable) Columns() []server.ColumnDefinition {
-	return []server.ColumnDefinition{
-		server.TextColumn("text"),
-		server.IntegerColumn("integer"),
-		server.BigIntColumn("big_int"),
-		server.DoubleColumn("double"),
+func (f *ExampleTable) Columns() []osquery.ColumnDefinition {
+	return []osquery.ColumnDefinition{
+		osquery.TextColumn("text"),
+		osquery.IntegerColumn("integer"),
+		osquery.BigIntColumn("big_int"),
+		osquery.DoubleColumn("double"),
 	}
 }
 
-func (f *ExampleTable) Generate(ctx context.Context, queryContext server.QueryContext) ([]map[string]string, error) {
+func (f *ExampleTable) Generate(ctx context.Context, queryContext osquery.QueryContext) ([]map[string]string, error) {
 	return []map[string]string{
 		{
 			"text":    "hello world",

@@ -1,4 +1,4 @@
-package server
+package osquery
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 
 	"git.apache.org/thrift.git/lib/go/thrift"
 
-	"github.com/kolide/osquery-golang/client"
 	"github.com/kolide/osquery-golang/gen/osquery"
 	"github.com/pkg/errors"
 )
@@ -39,7 +38,7 @@ type OsqueryPlugin interface {
 type ExtensionManagerServer struct {
 	name         string
 	sockPath     string
-	serverClient *client.ExtensionManagerClient
+	serverClient *ExtensionManagerClient
 	registry     map[string](map[string]OsqueryPlugin)
 	server       thrift.TServer
 	transport    thrift.TServerTransport
@@ -62,7 +61,7 @@ var StatusOK = osquery.ExtensionStatus{Code: 0, Message: "OK"}
 // resolving the address or connecting to the socket fails, this function will
 // error.
 func NewExtensionManagerServer(name string, sockPath string, timeout time.Duration) (*ExtensionManagerServer, error) {
-	serverClient, err := client.NewClient(sockPath, timeout)
+	serverClient, err := NewClient(sockPath, timeout)
 	if err != nil {
 		return nil, err
 	}

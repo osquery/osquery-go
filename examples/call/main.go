@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/kolide/osquery-golang/client"
+	"github.com/kolide/osquery-golang"
 )
 
 func main() {
@@ -17,7 +17,7 @@ Retrieves the columns for the given table by making a call to the plugin.
 		os.Exit(1)
 	}
 
-	client, err := client.NewClient(os.Args[1], 10*time.Second)
+	client, err := osquery.NewClient(os.Args[1], 10*time.Second)
 	if err != nil {
 		fmt.Println("Error creating Thrift client: " + err.Error())
 		os.Exit(1)
