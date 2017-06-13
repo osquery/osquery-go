@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kolide/osquery-golang"
+	. "github.com/kolide/osquery-golang/sql"
 )
 
 func main() {
@@ -60,12 +61,12 @@ func (f *ExampleTable) TableName() string {
 }
 
 func (f *ExampleTable) Columns() []osquery.ColumnDefinition {
-	return []osquery.ColumnDefinition{
-		osquery.TextColumn("text"),
-		osquery.IntegerColumn("integer"),
-		osquery.BigIntColumn("big_int"),
-		osquery.DoubleColumn("double"),
-	}
+	return ColumnSlice(
+		TextColumn("text"),
+		IntegerColumn("integer"),
+		BigIntColumn("big_int"),
+		DoubleColumn("double"),
+	)
 }
 
 func (f *ExampleTable) Generate(ctx context.Context, queryContext osquery.QueryContext) ([]map[string]string, error) {
