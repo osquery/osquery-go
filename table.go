@@ -120,39 +120,6 @@ type ColumnDefinition struct {
 	Type ColumnType
 }
 
-// TextColumn is a helper for defining columns containing strings.
-func TextColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeText,
-	}
-}
-
-// IntegerColumn is a helper for defining columns containing integers.
-func IntegerColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeInteger,
-	}
-}
-
-// BigIntColumn is a helper for defining columns containing big integers.
-func BigIntColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeBigInt,
-	}
-}
-
-// DoubleColumn is a helper for defining columns containing floating point
-// values.
-func DoubleColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeDouble,
-	}
-}
-
 // ColumnType is a strongly typed representation of the data type string for a
 // column definition. The named constants should be used.
 type ColumnType string
