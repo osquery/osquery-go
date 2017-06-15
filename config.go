@@ -31,28 +31,34 @@ type configPluginImpl struct {
 	plugin ConfigPlugin
 }
 
-// Ensure configPluginImpl implements the OsqueryPlugin interface.
-var _ OsqueryPlugin = (*configPluginImpl)(nil)
-
 func (t *configPluginImpl) Name() string {
 	return t.plugin.Name()
 }
 
+// Registry name for config plugins
+const configRegistryName = "config"
+
 func (t *configPluginImpl) RegistryName() string {
-	return "config"
+	return configRegistryName
 }
 
 func (t *configPluginImpl) Routes() osquery.ExtensionPluginResponse {
-	return []map[string]string{}
+	return osquery.ExtensionPluginResponse{}
 }
 
 func (t *configPluginImpl) Ping() osquery.ExtensionStatus {
 	return StatusOK
 }
 
+// Key that the request method is stored under
+const requestActionKey = "action"
+
+// Action value used when config is requested
+const genConfigAction = "genConfig"
+
 func (t *configPluginImpl) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
-	switch request["action"] {
-	case "genConfig":
+	switch request[requestActionKey] {
+	case genConfigAction:
 		configs, err := t.plugin.GenerateConfigs(ctx)
 		if err != nil {
 			return osquery.ExtensionResponse{
