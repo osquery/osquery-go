@@ -3,7 +3,7 @@ package osquery
 import (
 	"context"
 
-	"github.com/kolide/osquery-golang/gen/osquery"
+	"github.com/kolide/osquery-go/gen/osquery"
 )
 
 // ConfigPlugin is the minimum interface required to implement an osquery

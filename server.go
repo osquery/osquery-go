@@ -8,7 +8,7 @@ import (
 
 	"git.apache.org/thrift.git/lib/go/thrift"
 
-	"github.com/kolide/osquery-golang/gen/osquery"
+	"github.com/kolide/osquery-go/gen/osquery"
 	"github.com/pkg/errors"
 )
 

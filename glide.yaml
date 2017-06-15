@@ -1,4 +1,4 @@
-package: github.com/kolide/osquery-golang
+package: github.com/kolide/osquery-go
 import:
 - package: git.apache.org/thrift.git
   version: server_socket_from_addr
