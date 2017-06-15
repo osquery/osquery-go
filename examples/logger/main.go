@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -9,15 +10,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alecthomas/kingpin"
 	"github.com/kolide/osquery-golang"
 )
 
 func main() {
-	socketPath := kingpin.Flag("socket", "path to osqueryd extensions socket").String()
-	kingpin.Flag("timeout", "timeout")
-	kingpin.Flag("interval", "interval")
-	kingpin.Parse()
+	socketPath := flag.String("socket", "", "path to osqueryd extensions socket")
+	flag.Int("timeout", 0, "")
+	flag.Int("interval", 0, "")
+	flag.Parse()
 
 	serv, err := osquery.NewExtensionManagerServer("example_logger", *socketPath, 1*time.Second)
 	if err != nil {
