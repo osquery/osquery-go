@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/kolide/osquery-golang/gen/osquery"
+	"github.com/kolide/osquery-go/gen/osquery"
 	"github.com/pkg/errors"
 )
 
