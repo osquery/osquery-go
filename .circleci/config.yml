@@ -6,7 +6,26 @@ jobs:
     working_directory: /go/src/github.com/kolide/osquery-go
     steps:
       - checkout
+
+      - restore_cache:
+          keys:
+            - vendor-cache-{{ .Branch }}-{{ checksum "glide.lock" }}
+            - vendor-cache-{{ .Branch }}
+            - vendor-cache
       - run: go get -u github.com/Masterminds/glide
       - run: glide install --strip-vendor
+      - save_cache:
+          key: vendor-cache-{{ .Branch }}-{{ checksum "glide.lock" }}
+          paths:
+            - vendor
+      - save_cache:
+          key: vendor-cache-{{ .Branch }}
+          paths:
+            - vendor
+      - save_cache:
+          key: vendor-cache
+          paths:
+            - vendor
+
       - run: go test -race -cover -v $(go list ./... | grep -v /vendor/)
       - run: make
