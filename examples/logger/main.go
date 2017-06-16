@@ -55,24 +55,23 @@ func (f *ExampleLogger) Name() string {
 	return "example_logger"
 }
 
-func logTypeToString(typ osquery.LogType) string {
+func (f *ExampleLogger) LogString(ctx context.Context, typ osquery.LogType, logText string) error {
+	var typeString string
 	switch typ {
 	case osquery.LogTypeString:
-		return "string"
+		typeString = "string"
 	case osquery.LogTypeSnapshot:
-		return "snapshot"
+		typeString = "snapshot"
 	case osquery.LogTypeHealth:
-		return "health"
+		typeString = "health"
 	case osquery.LogTypeInit:
-		return "init"
+		typeString = "init"
 	case osquery.LogTypeStatus:
-		return "status"
+		typeString = "status"
 	default:
-		return "unknown"
+		typeString = "unknown"
 	}
-}
 
-func (f *ExampleLogger) LogString(ctx context.Context, typ osquery.LogType, logText string) error {
-	log.Printf("%s: %s\n", logTypeToString(typ), logText)
+	log.Printf("%s: %s\n", typeString, logText)
 	return nil
 }
