@@ -92,3 +92,23 @@ const (
 	LogTypeInit
 	LogTypeStatus
 )
+
+// String implements the fmt.Stringer interface for LogType
+func (l LogType) String() string {
+	var typeString string
+	switch l {
+	case LogTypeString:
+		typeString = "string"
+	case LogTypeSnapshot:
+		typeString = "snapshot"
+	case LogTypeHealth:
+		typeString = "health"
+	case LogTypeInit:
+		typeString = "init"
+	case LogTypeStatus:
+		typeString = "status"
+	default:
+		typeString = "unknown"
+	}
+	return typeString
+}

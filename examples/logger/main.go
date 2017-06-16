@@ -50,22 +50,6 @@ func main() {
 }
 
 func LogString(ctx context.Context, typ logger.LogType, logText string) error {
-	var typeString string
-	switch typ {
-	case logger.LogTypeString:
-		typeString = "string"
-	case logger.LogTypeSnapshot:
-		typeString = "snapshot"
-	case logger.LogTypeHealth:
-		typeString = "health"
-	case logger.LogTypeInit:
-		typeString = "init"
-	case logger.LogTypeStatus:
-		typeString = "status"
-	default:
-		typeString = "unknown"
-	}
-
-	log.Printf("%s: %s\n", typeString, logText)
+	log.Printf("%s: %s\n", typ, logText)
 	return nil
 }
