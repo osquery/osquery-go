@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kolide/osquery-golang"
+	"github.com/kolide/osquery-go"
 )
 
 func main() {
