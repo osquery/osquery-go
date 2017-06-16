@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/kolide/osquery-go"
+	"github.com/kolide/osquery-go/plugin/table"
 )
 
 func main() {
@@ -26,29 +27,21 @@ example_table' in the osquery process the extension attaches to.
 		log.Printf("Error creating extension: %s\n", err)
 		os.Exit(1)
 	}
-	server.RegisterPlugin(osquery.NewTablePlugin(&ExampleTable{}))
+	serv.RegisterPlugin(table.NewPlugin(name, Columns(), Generate))
 	if err := server.Run(); err != nil {
 		log.Println(err)
-		os.Exit(1)
+}
+
+func Columns() []table.ColumnDefinition {
+	return []table.ColumnDefinition{
+		table.TextColumn("text"),
+		table.IntegerColumn("integer"),
+		table.BigIntColumn("big_int"),
+		table.DoubleColumn("double"),
 	}
 }
 
-type ExampleTable struct{}
-
-func (f *ExampleTable) Name() string {
-	return "example_table"
-}
-
-func (f *ExampleTable) Columns() []osquery.ColumnDefinition {
-	return []osquery.ColumnDefinition{
-		osquery.TextColumn("text"),
-		osquery.IntegerColumn("integer"),
-		osquery.BigIntColumn("big_int"),
-		osquery.DoubleColumn("double"),
-	}
-}
-
-func (f *ExampleTable) Generate(ctx context.Context, queryContext osquery.QueryContext) ([]map[string]string, error) {
+func Generate(ctx context.Context, queryContext table.QueryContext) ([]map[string]string, error) {
 	return []map[string]string{
 		{
 			"text":    "hello world",
