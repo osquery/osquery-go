@@ -1,0 +1,12 @@
+version: 2
+jobs:
+  build:
+    docker:
+        - image: golang:1.8
+    working_directory: /go/src/github.com/kolide/osquery-go
+    steps:
+      - checkout
+      - run: go get -u github.com/Masterminds/glide
+      - run: glide install --strip-vendor
+      - run: go test -race -cover -v $(go list ./... | grep -v /vendor/)
+      - run: make
