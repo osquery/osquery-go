@@ -1,5 +1,5 @@
-hash: 2b1b09e160c156fa0b6ce5733a160388dab48e7bce59987ddb053a89cd91dfc4
-updated: 2017-06-06T18:16:54.746095588-07:00
+hash: 5ce2c973e0be69cd2b70f9012013b3901f729063fe0aa851039153f40045e8a4
+updated: 2017-06-15T18:06:32.80983443-07:00
 imports:
 - name: git.apache.org/thrift.git
   version: 891852bb99ce0e280f55ccdb20c5c4be2d14a2ee
@@ -10,4 +10,14 @@ imports:
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/stretchr/testify
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
-testImports: []
+  subpackages:
+  - assert
+testImports:
+- name: github.com/davecgh/go-spew
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
