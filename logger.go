@@ -44,7 +44,7 @@ func (t *loggerPluginImpl) Routes() osquery.ExtensionPluginResponse {
 }
 
 func (t *loggerPluginImpl) Ping() osquery.ExtensionStatus {
-	return StatusOK
+	return StatusOK()
 }
 
 func (t *loggerPluginImpl) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
@@ -77,8 +77,9 @@ func (t *loggerPluginImpl) Call(ctx context.Context, request osquery.ExtensionPl
 		}
 	}
 
+	ok := StatusOK()
 	return osquery.ExtensionResponse{
-		Status:   &StatusOK,
+		Status:   &ok,
 		Response: osquery.ExtensionPluginResponse{},
 	}
 }

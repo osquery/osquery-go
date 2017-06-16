@@ -62,10 +62,11 @@ func (t *tablePluginImpl) Routes() osquery.ExtensionPluginResponse {
 }
 
 func (t *tablePluginImpl) Ping() osquery.ExtensionStatus {
-	return StatusOK
+	return StatusOK()
 }
 
 func (t *tablePluginImpl) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
+	ok := StatusOK()
 	switch request["action"] {
 	case "generate":
 		queryContext, err := parseQueryContext(request["context"])
@@ -89,13 +90,13 @@ func (t *tablePluginImpl) Call(ctx context.Context, request osquery.ExtensionPlu
 		}
 
 		return osquery.ExtensionResponse{
-			Status:   &StatusOK,
+			Status:   &ok,
 			Response: rows,
 		}
 
 	case "columns":
 		return osquery.ExtensionResponse{
-			Status:   &StatusOK,
+			Status:   &ok,
 			Response: t.Routes(),
 		}
 

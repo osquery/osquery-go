@@ -47,7 +47,7 @@ func (t *configPluginImpl) Routes() osquery.ExtensionPluginResponse {
 }
 
 func (t *configPluginImpl) Ping() osquery.ExtensionStatus {
-	return StatusOK
+	return StatusOK()
 }
 
 // Key that the request method is stored under
@@ -69,8 +69,9 @@ func (t *configPluginImpl) Call(ctx context.Context, request osquery.ExtensionPl
 			}
 		}
 
+		ok := StatusOK()
 		return osquery.ExtensionResponse{
-			Status:   &StatusOK,
+			Status:   &ok,
 			Response: osquery.ExtensionPluginResponse{configs},
 		}
 
