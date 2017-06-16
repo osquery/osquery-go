@@ -3,7 +3,7 @@ package osquery
 import (
 	"context"
 
-	"github.com/kolide/osquery-golang/gen/osquery"
+	"github.com/kolide/osquery-go/gen/osquery"
 )
 
 // LoggerPlugin is the minimum interface required to implement an osquery
@@ -31,9 +31,6 @@ type loggerPluginImpl struct {
 	plugin LoggerPlugin
 }
 
-// Ensure loggerPluginImpl implements the OsqueryPlugin interface.
-var _ OsqueryPlugin = (*loggerPluginImpl)(nil)
-
 func (t *loggerPluginImpl) Name() string {
 	return t.plugin.Name()
 }
@@ -57,7 +54,7 @@ func (t *loggerPluginImpl) Call(ctx context.Context, request osquery.ExtensionPl
 	} else if log, ok := request["snapshot"]; ok {
 		err = t.plugin.LogString(ctx, LogTypeSnapshot, log)
 	} else if log, ok := request["health"]; ok {
-		err = t.plugin.LogString(ctx, LogTypeSnapshot, log)
+		err = t.plugin.LogString(ctx, LogTypeHealth, log)
 	} else if log, ok := request["init"]; ok {
 		err = t.plugin.LogString(ctx, LogTypeInit, log)
 	} else if log, ok := request["status"]; ok {
@@ -75,7 +72,7 @@ func (t *loggerPluginImpl) Call(ctx context.Context, request osquery.ExtensionPl
 		return osquery.ExtensionResponse{
 			Status: &osquery.ExtensionStatus{
 				Code:    1,
-				Message: "error logging string: " + err.Error(),
+				Message: "error logging: " + err.Error(),
 			},
 		}
 	}
