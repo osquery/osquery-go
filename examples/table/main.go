@@ -55,7 +55,7 @@ example_table' in the osquery process the extension attaches to.
 
 type ExampleTable struct{}
 
-func (f *ExampleTable) TableName() string {
+func (f *ExampleTable) Name() string {
 	return "example_table"
 }
 

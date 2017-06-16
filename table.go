@@ -13,8 +13,9 @@ import (
 // as a plugin. Any value that implements this interface can be passed to
 // NewTablePlugin to satisfy the OsqueryPlugin interface.
 type TablePlugin interface {
-	// TableName returns the name of the table the plugin implements.
-	TableName() string
+	// Name returns the name of the table the plugin implements. This is
+	// the name used when querying the table through osquery.
+	Name() string
 
 	// Columns returns the column definition of the table.
 	Columns() []ColumnDefinition
@@ -37,11 +38,8 @@ type tablePluginImpl struct {
 	plugin TablePlugin
 }
 
-// Ensure tablePluginImpl implements the OsqueryPlugin interface.
-var _ OsqueryPlugin = (*tablePluginImpl)(nil)
-
 func (t *tablePluginImpl) Name() string {
-	return t.plugin.TableName()
+	return t.plugin.Name()
 }
 
 func (t *tablePluginImpl) RegistryName() string {
