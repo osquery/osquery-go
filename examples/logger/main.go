@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/kolide/osquery-go"
+	"github.com/kolide/osquery-go/plugin/logger"
 )
 
 func main() {
@@ -23,7 +24,7 @@ func main() {
 		fmt.Printf("Error creating extension: %v\n", err)
 		os.Exit(1)
 	}
-	serv.RegisterPlugin(osquery.NewLoggerPlugin(&ExampleLogger{}))
+	serv.RegisterPlugin(logger.NewPlugin("example_logger", LogString))
 
 	// Shut down server when process killed so that we don't leave the unix
 	// domain socket file on the filesystem.
@@ -48,24 +49,18 @@ func main() {
 	}
 }
 
-type ExampleLogger struct{}
-
-func (f *ExampleLogger) Name() string {
-	return "example_logger"
-}
-
-func (f *ExampleLogger) LogString(ctx context.Context, typ osquery.LogType, logText string) error {
+func LogString(ctx context.Context, typ logger.LogType, logText string) error {
 	var typeString string
 	switch typ {
-	case osquery.LogTypeString:
+	case logger.LogTypeString:
 		typeString = "string"
-	case osquery.LogTypeSnapshot:
+	case logger.LogTypeSnapshot:
 		typeString = "snapshot"
-	case osquery.LogTypeHealth:
+	case logger.LogTypeHealth:
 		typeString = "health"
-	case osquery.LogTypeInit:
+	case logger.LogTypeInit:
 		typeString = "init"
-	case osquery.LogTypeStatus:
+	case logger.LogTypeStatus:
 		typeString = "status"
 	default:
 		typeString = "unknown"
