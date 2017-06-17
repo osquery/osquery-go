@@ -58,10 +58,6 @@ var validRegistryNames = map[string]bool{
 	"config": true,
 }
 
-// StatusOK is an osquery.ExtensionStatus to be returned when the operation was
-// successful.
-var StatusOK = osquery.ExtensionStatus{Code: 0, Message: "OK"}
-
 type ServerOption func(*ExtensionManagerServer)
 
 func ServerTimeout(timeout time.Duration) ServerOption {
@@ -184,7 +180,7 @@ func (s *ExtensionManagerServer) Run() error {
 
 // Ping implements the basic health check.
 func (s *ExtensionManagerServer) Ping() (*osquery.ExtensionStatus, error) {
-	return &StatusOK, nil
+	return &osquery.ExtensionStatus{Code: 0, Message: "OK"}, nil
 }
 
 // Call routes a call from the osquery process to the appropriate registered
