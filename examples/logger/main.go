@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/kolide/osquery-go"
 )
@@ -19,7 +18,7 @@ func main() {
 	flag.Int("interval", 0, "")
 	flag.Parse()
 
-	serv, err := osquery.NewExtensionManagerServer("example_logger", *socketPath, 1*time.Second)
+	serv, err := osquery.NewExtensionManagerServer("example_logger", *socketPath)
 	if err != nil {
 		fmt.Printf("Error creating extension: %v\n", err)
 		os.Exit(1)

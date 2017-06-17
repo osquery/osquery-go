@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
@@ -32,6 +35,8 @@ type OsqueryPlugin interface {
 	Shutdown()
 }
 
+const defaultTimeout = 1 * time.Second
+
 // ExtensionManagerServer is an implementation of the full ExtensionManager
 // API. Plugins can register with an extension manager, which handles the
 // communication with the osquery process.
@@ -42,6 +47,7 @@ type ExtensionManagerServer struct {
 	registry     map[string](map[string]OsqueryPlugin)
 	server       thrift.TServer
 	transport    thrift.TServerTransport
+	timeout      time.Duration
 }
 
 // validRegistryNames contains the allowable RegistryName() values. If a plugin
@@ -56,28 +62,43 @@ var validRegistryNames = map[string]bool{
 // successful.
 var StatusOK = osquery.ExtensionStatus{Code: 0, Message: "OK"}
 
+type ServerOption func(*ExtensionManagerServer)
+
+func ServerTimeout(timeout time.Duration) ServerOption {
+	return func(s *ExtensionManagerServer) {
+		s.timeout = timeout
+	}
+}
+
 // NewExtensionManagerServer creates a new extension management server
 // communicating with osquery over the socket at the provided path. If
 // resolving the address or connecting to the socket fails, this function will
 // error.
-func NewExtensionManagerServer(name string, sockPath string, timeout time.Duration) (*ExtensionManagerServer, error) {
-	serverClient, err := NewClient(sockPath, timeout)
-	if err != nil {
-		return nil, err
-	}
-
+func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOption) (*ExtensionManagerServer, error) {
 	// Initialize nested registry maps
 	registry := make(map[string](map[string]OsqueryPlugin))
 	for reg, _ := range validRegistryNames {
 		registry[reg] = make(map[string]OsqueryPlugin)
 	}
 
-	return &ExtensionManagerServer{
-		name:         name,
-		sockPath:     sockPath,
-		serverClient: serverClient,
-		registry:     registry,
-	}, nil
+	manager := &ExtensionManagerServer{
+		name:     name,
+		sockPath: sockPath,
+		registry: registry,
+		timeout:  defaultTimeout,
+	}
+
+	for _, opt := range opts {
+		opt(manager)
+	}
+
+	serverClient, err := NewClient(sockPath, manager.timeout)
+	if err != nil {
+		return nil, err
+	}
+	manager.serverClient = serverClient
+
+	return manager, nil
 }
 
 // RegisterPlugin adds an OsqueryPlugin to this extension manager.
@@ -135,6 +156,30 @@ func (s *ExtensionManagerServer) Start() error {
 	s.server = thrift.NewTSimpleServer2(processor, s.transport)
 
 	return s.server.Serve()
+}
+
+// Run starts the extension manager and runs until an an interrupt
+// signal is received.
+// Run will call Shutdown before exiting.
+func (s *ExtensionManagerServer) Run() error {
+	errc := make(chan error)
+	go func() {
+		errc <- s.Start()
+	}()
+
+	// Interrupt handler.
+	go func() {
+		sig := make(chan os.Signal)
+		signal.Notify(sig, os.Interrupt, os.Kill, syscall.SIGTERM)
+		<-sig
+		errc <- nil
+	}()
+
+	err := <-errc
+	if err := s.Shutdown(); err != nil {
+		return err
+	}
+	return err
 }
 
 // Ping implements the basic health check.

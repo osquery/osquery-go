@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/kolide/osquery-go"
 )
@@ -24,7 +23,7 @@ sudo ./example_call /var/osquery/osquery.em config example_config genConfig
 		os.Exit(1)
 	}
 
-	serv, err := osquery.NewExtensionManagerServer("example_config", os.Args[1], 1*time.Second)
+	serv, err := osquery.NewExtensionManagerServer("example_config", os.Args[1])
 	if err != nil {
 		fmt.Printf("Error creating extension: %v\n", err)
 		os.Exit(1)
