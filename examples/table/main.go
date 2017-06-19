@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/kolide/osquery-go"
 )
@@ -23,32 +21,14 @@ example_table' in the osquery process the extension attaches to.
 		os.Exit(1)
 	}
 
-	serv, err := osquery.NewExtensionManagerServer("example_table", os.Args[1], 1*time.Second)
+	server, err := osquery.NewExtensionManagerServer("example_table", os.Args[1])
 	if err != nil {
-		fmt.Printf("Error creating extension: %v\n", err)
+		log.Printf("Error creating extension: %s\n", err)
 		os.Exit(1)
 	}
-	serv.RegisterPlugin(osquery.NewTablePlugin(&ExampleTable{}))
-
-	// Shut down server when process killed so that we don't leave the unix
-	// domain socket file on the filesystem.
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt, os.Kill, syscall.SIGTERM)
-	go func() {
-		<-sig
-		fmt.Println("Stopping extension server.")
-		err := serv.Shutdown()
-		if err != nil {
-			fmt.Println("Error shutting down server: " + err.Error())
-			os.Exit(1)
-		}
-		os.Exit(0)
-	}()
-
-	fmt.Println("Starting extension server...")
-	err = serv.Start()
-	if err != nil {
-		fmt.Println("Error starting server: " + err.Error())
+	server.RegisterPlugin(osquery.NewTablePlugin(&ExampleTable{}))
+	if err := server.Run(); err != nil {
+		log.Println(err)
 		os.Exit(1)
 	}
 }
