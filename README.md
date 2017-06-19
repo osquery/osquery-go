@@ -59,7 +59,7 @@ func (f *ExampleTable) Columns() []osquery.ColumnDefinition {
 	}
 }
 
-// Generate will be called whenever the table is queries. It should return
+// Generate will be called whenever the table is queried. It should return
 // a full table scan.
 func (f *ExampleTable) Generate(ctx context.Context, queryContext osquery.QueryContext) ([]map[string]string, error) {
 	return []map[string]string{
