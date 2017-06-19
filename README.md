@@ -20,7 +20,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
@@ -29,48 +28,48 @@ import (
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Printf(`Usage: %s SOCKET_PATH\n
-Registers an example table extension.
-This extension provides the "example_table" table. Try 'SELECT * FROM
-example_table' in the osquery process the extension attaches to.
-`, os.Args[0])
-		os.Exit(1)
+		log.Fatalf(`Usage: %s SOCKET_PATH`, os.Args[0])
 	}
 
-	server, err := osquery.NewExtensionManagerServer("example_table", os.Args[1])
+	server, err := osquery.NewExtensionManagerServer("foobar", os.Args[1])
 	if err != nil {
-		log.Printf("Error creating extension: %s\n", err)
-		os.Exit(1)
+		log.Fatalf("Error creating extension: %s\n", err)
 	}
 	server.RegisterPlugin(osquery.NewTablePlugin(&ExampleTable{}))
 	if err := server.Run(); err != nil {
-		log.Println(err)
-		os.Exit(1)
+		log.Fatalln(err)
 	}
 }
 
+// ExampleTable is a type that we create here so that we can attach methods
+// onto it. These methods will satisfy the interface required by the call to
+// osquery.NewTablePlugin when we register our table.
 type ExampleTable struct{}
 
+// Name returns the name of our table.
 func (f *ExampleTable) Name() string {
-	return "example_table"
+	return "foobar"
 }
 
+// Columns returns the columns that our table will return.
 func (f *ExampleTable) Columns() []osquery.ColumnDefinition {
 	return []osquery.ColumnDefinition{
-		osquery.TextColumn("text"),
-		osquery.IntegerColumn("integer"),
-		osquery.BigIntColumn("big_int"),
-		osquery.DoubleColumn("double"),
+		osquery.TextColumn("foo"),
+		osquery.TextColumn("baz"),
 	}
 }
 
+// Generate will be called whenever the table is queries. It should return
+// a full table scan.
 func (f *ExampleTable) Generate(ctx context.Context, queryContext osquery.QueryContext) ([]map[string]string, error) {
 	return []map[string]string{
 		{
-			"text":    "hello world",
-			"integer": "123",
-			"big_int": "-1234567890",
-			"double":  "3.14159",
+			"foo": "bar",
+			"baz": "baz",
+		},
+		{
+			"foo": "bar",
+			"baz": "baz",
 		},
 	}, nil
 }
@@ -101,15 +100,16 @@ go build -o my_table_plugin my_table_plugin.go
 osqueryi --extension /path/to/my_table_plugin
 ```
 
-This will register a table called `example_table`. As you can see, the table will return one row:
+This will register a table called "foobar". As you can see, the table will return two rows:
 
 ```
-osquery> select * from example_table;
-+-------------+---------+-------------+---------+
-| text        | integer | big_int     | double  |
-+-------------+---------+-------------+---------+
-| hello world | 123     | -1234567890 | 3.14159 |
-+-------------+---------+-------------+---------+
+osquery> select * from foobar;
++-----+-----+
+| foo | baz |
++-----+-----+
+| bar | baz |
+| bar | baz |
++-----+-----+
 osquery>
 ```
 
