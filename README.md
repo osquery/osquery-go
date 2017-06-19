@@ -228,7 +228,7 @@ func main() {
 To install this library, run the following:
 
 ```
-go get -u github.com/kolide/osquery-go/...
+go get github.com/kolide/osquery-go
 ```
 
 Alternatively, if you're using this in a project that uses a dependency management tool like [Glide](https://github.com/Masterminds/glide) or [Dep](https://github.com/golang/dep), then follow the relevant instructions provided by that tool.
