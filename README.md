@@ -9,7 +9,7 @@ If you're interested in learning more about osquery, visit the [GitHub project](
 
 ## What is osquery-go?
 
-In osquery, SQL tables, configuration retrieval, log handling, etc are implemented via a simple, robust plugin and extensions API. This project contains Go bindings for creating osquery extensions in Go.
+In osquery, SQL tables, configuration retrieval, log handling, etc are implemented via a robust plugin and extensions API. This project contains Go bindings for creating osquery extensions in Go.
 
 ### Creating a new osquery table
 
@@ -113,7 +113,7 @@ osquery> select * from example_table;
 osquery>
 ```
 
-This is obviously a contrived example, but it's easy to imagine the possibilities.
+This is obviously a contrived example, but it's straightforward to imagine the possibilities.
 
 Using the instructions found on the [wiki](https://osquery.readthedocs.io/en/latest/development/osquery-sdk/), you can easily deploy your extension with an existing osquery deployment.
 
