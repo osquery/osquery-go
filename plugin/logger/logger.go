@@ -1,3 +1,6 @@
+// Package logger creates an osquery logging plugin.
+//
+// See https://osquery.readthedocs.io/en/latest/development/logger-plugins/ for more.
 package logger
 
 import (
@@ -93,7 +96,7 @@ const (
 	LogTypeStatus
 )
 
-// String implements the fmt.Stringer interface for LogType
+// String implements the fmt.Stringer interface for LogType.
 func (l LogType) String() string {
 	var typeString string
 	switch l {

@@ -1,3 +1,4 @@
+// Package table creates an osquery table plugin.
 package table
 
 import (

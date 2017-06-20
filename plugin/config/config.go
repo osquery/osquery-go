@@ -1,3 +1,6 @@
+// Package config creates an osquery configuration plugin.
+//
+// See https://osquery.readthedocs.io/en/latest/development/config-plugins/ for more.
 package config
 
 import (
@@ -12,6 +15,8 @@ import (
 // cancellation in long-running operations.
 type GenerateConfigsFunc func(ctx context.Context) (map[string]string, error)
 
+// Plugin is an osquery configuration plugin. Plugin implements the OsqueryPlugin
+// interface.
 type Plugin struct {
 	name     string
 	generate GenerateConfigsFunc
