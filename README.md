@@ -11,6 +11,18 @@ If you're interested in learning more about osquery, visit the [GitHub project](
 
 In osquery, SQL tables, configuration retrieval, log handling, etc. are implemented via a robust plugin and extensions API. This project contains Go bindings for creating osquery extensions in Go. To create an extension, you must create an executable binary which instantiates an `ExtensionManagerServer` and registers the plugins that you would like to be added to osquery. You can then have osquery load the extension in your desired context (ie: in a long running instance of `osqueryd` or during an interactive query session with `osqueryi`). For more information about how this process works at a lower level, see the osquery [wiki](https://osquery.readthedocs.io/en/latest/development/osquery-sdk/).
 
+## Install
+
+To install this library, run the following:
+
+```
+go get github.com/kolide/osquery-go
+```
+
+Alternatively, if you're using this in a project that uses a dependency management tool like [Glide](https://github.com/Masterminds/glide) or [Dep](https://github.com/golang/dep), then follow the relevant instructions provided by that tool.
+
+## Using the library
+
 ### Creating a new osquery table
 
 If you want to create a custom osquery table in Go, you'll need to write an extension which registers the implementation of your table. Consider the following Go program:
@@ -222,16 +234,6 @@ func main() {
 	fmt.Printf("Got results:\n%#v\n", resp.Response)
 }
 ```
-
-## Install
-
-To install this library, run the following:
-
-```
-go get github.com/kolide/osquery-go
-```
-
-Alternatively, if you're using this in a project that uses a dependency management tool like [Glide](https://github.com/Masterminds/glide) or [Dep](https://github.com/golang/dep), then follow the relevant instructions provided by that tool.
 
 ## Contributing
 
