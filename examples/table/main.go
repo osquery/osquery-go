@@ -22,17 +22,17 @@ example_table' in the osquery process the extension attaches to.
 		os.Exit(1)
 	}
 
-	server, err := osquery.NewExtensionManagerServer("example_table", os.Args[1])
+	server, err := osquery.NewExtensionManagerServer("example_extension", os.Args[1])
 	if err != nil {
-		log.Printf("Error creating extension: %s\n", err)
-		os.Exit(1)
+		log.Fatalf("Error creating extension: %s\n", err)
 	}
-	serv.RegisterPlugin(table.NewPlugin(name, Columns(), Generate))
+	server.RegisterPlugin(table.NewPlugin("example_table", ExampleColumns(), ExampleGenerate))
 	if err := server.Run(); err != nil {
-		log.Println(err)
+		log.Fatal(err)
+	}
 }
 
-func Columns() []table.ColumnDefinition {
+func ExampleColumns() []table.ColumnDefinition {
 	return []table.ColumnDefinition{
 		table.TextColumn("text"),
 		table.IntegerColumn("integer"),
@@ -41,7 +41,7 @@ func Columns() []table.ColumnDefinition {
 	}
 }
 
-func Generate(ctx context.Context, queryContext table.QueryContext) ([]map[string]string, error) {
+func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]map[string]string, error) {
 	return []map[string]string{
 		{
 			"text":    "hello world",

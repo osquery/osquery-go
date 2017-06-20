@@ -10,55 +10,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Ensure tablePluginImpl implements the OsqueryPlugin interface.
-var _ OsqueryPlugin = (*tablePluginImpl)(nil)
-
-type mockTablePlugin struct {
-	NameFunc     func() string
-	ColumnsFunc  func() []ColumnDefinition
-	GenerateFunc func(context.Context, QueryContext) ([]map[string]string, error)
-}
-
-func (m *mockTablePlugin) Name() string {
-	return m.NameFunc()
-}
-
-func (m *mockTablePlugin) Columns() []ColumnDefinition {
-	return m.ColumnsFunc()
-}
-
-func (m *mockTablePlugin) Generate(ctx context.Context, queryCtx QueryContext) ([]map[string]string, error) {
-	return m.GenerateFunc(ctx, queryCtx)
-}
-
 func TestTablePlugin(t *testing.T) {
+	var StatusOK = osquery.ExtensionStatus{Code: 0, Message: "OK"}
 	var calledQueryCtx QueryContext
-	plugin := NewTablePlugin(
-		&mockTablePlugin{
-			NameFunc: func() string {
-				return "mock"
-			},
-			ColumnsFunc: func() []ColumnDefinition {
-				return []ColumnDefinition{
-					TextColumn("text"),
-					IntegerColumn("integer"),
-					BigIntColumn("big_int"),
-					DoubleColumn("double"),
-				}
-			},
-			GenerateFunc: func(ctx context.Context, queryCtx QueryContext) ([]map[string]string, error) {
-				calledQueryCtx = queryCtx
-				return []map[string]string{
-					{
-						"text":    "hello world",
-						"integer": "123",
-						"big_int": "-1234567890",
-						"double":  "3.14159",
-					},
-				}, nil
-			},
+	plugin := NewPlugin(
+		"mock",
+		[]ColumnDefinition{
+			TextColumn("text"),
+			IntegerColumn("integer"),
+			BigIntColumn("big_int"),
+			DoubleColumn("double"),
 		},
-	)
+		func(ctx context.Context, queryCtx QueryContext) ([]map[string]string, error) {
+			calledQueryCtx = queryCtx
+			return []map[string]string{
+				{
+					"text":    "hello world",
+					"integer": "123",
+					"big_int": "-1234567890",
+					"double":  "3.14159",
+				},
+			}, nil
+		})
 
 	// Basic methods
 	assert.Equal(t, "table", plugin.RegistryName())
@@ -97,23 +70,17 @@ func TestTablePlugin(t *testing.T) {
 
 func TestTablePluginErrors(t *testing.T) {
 	var called bool
-	plugin := NewTablePlugin(
-		&mockTablePlugin{
-			NameFunc: func() string {
-				return "mock"
-			},
-			ColumnsFunc: func() []ColumnDefinition {
-				return []ColumnDefinition{
-					TextColumn("text"),
-					IntegerColumn("integer"),
-					BigIntColumn("big_int"),
-					DoubleColumn("double"),
-				}
-			},
-			GenerateFunc: func(ctx context.Context, queryCtx QueryContext) ([]map[string]string, error) {
-				called = true
-				return nil, errors.New("foobar")
-			},
+	plugin := NewPlugin(
+		"mock",
+		[]ColumnDefinition{
+			TextColumn("text"),
+			IntegerColumn("integer"),
+			BigIntColumn("big_int"),
+			DoubleColumn("double"),
+		},
+		func(ctx context.Context, queryCtx QueryContext) ([]map[string]string, error) {
+			called = true
+			return nil, errors.New("foobar")
 		},
 	)
 

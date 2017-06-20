@@ -23,14 +23,13 @@ sudo ./example_call /var/osquery/osquery.em config example_config genConfig
 		os.Exit(1)
 	}
 
-	serv, err := osquery.NewExtensionManagerServer("example_extension", os.Args[1])
+	server, err := osquery.NewExtensionManagerServer("example_extension", os.Args[1])
 	if err != nil {
-		fmt.Printf("Error creating extension: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error creating extension: %s\n", err)
 	}
-	serv.RegisterPlugin(config.NewPlugin(name, GenerateConfigs))
+	server.RegisterPlugin(config.NewPlugin("example", GenerateConfigs))
 	if err := server.Run(); err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 }
 
