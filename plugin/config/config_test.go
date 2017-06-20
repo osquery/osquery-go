@@ -1,4 +1,4 @@
-package osquery
+package config
 
 import (
 	"context"
@@ -9,37 +9,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Ensure configPluginImpl implements the OsqueryPlugin interface.
-var _ OsqueryPlugin = (*configPluginImpl)(nil)
-
-type mockConfigPlugin struct {
-	NameFunc            func() string
-	GenerateConfigsFunc func(context.Context) (map[string]string, error)
-}
-
-func (m *mockConfigPlugin) Name() string {
-	return m.NameFunc()
-}
-
-func (m *mockConfigPlugin) GenerateConfigs(ctx context.Context) (map[string]string, error) {
-	return m.GenerateConfigsFunc(ctx)
-}
+var StatusOK = osquery.ExtensionStatus{Code: 0, Message: "OK"}
 
 func TestConfigPlugin(t *testing.T) {
 	var called bool
-	plugin := NewConfigPlugin(
-		&mockConfigPlugin{
-			NameFunc: func() string {
-				return "mock"
-			},
-			GenerateConfigsFunc: func(context.Context) (map[string]string, error) {
-				called = true
-				return map[string]string{
-					"conf1": "foobar",
-				}, nil
-			},
-		},
-	)
+	plugin := NewPlugin("mock", func(context.Context) (map[string]string, error) {
+		called = true
+		return map[string]string{
+			"conf1": "foobar",
+		}, nil
+	})
 
 	// Basic methods
 	assert.Equal(t, "config", plugin.RegistryName())
@@ -56,17 +35,10 @@ func TestConfigPlugin(t *testing.T) {
 
 func TestConfigPluginErrors(t *testing.T) {
 	var called bool
-	plugin := NewConfigPlugin(
-		&mockConfigPlugin{
-			NameFunc: func() string {
-				return "mock"
-			},
-			GenerateConfigsFunc: func(context.Context) (map[string]string, error) {
-				called = true
-				return nil, errors.New("foobar")
-			},
-		},
-	)
+	plugin := NewPlugin("mock", func(context.Context) (map[string]string, error) {
+		called = true
+		return nil, errors.New("foobar")
+	})
 
 	// Call with bad actions
 	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{}).Status.Code)

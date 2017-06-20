@@ -1,4 +1,4 @@
-package osquery
+package logger
 
 import (
 	"context"
@@ -8,9 +8,6 @@ import (
 	"github.com/kolide/osquery-go/gen/osquery"
 	"github.com/stretchr/testify/assert"
 )
-
-// Ensure loggerPluginImpl implements the OsqueryPlugin interface.
-var _ OsqueryPlugin = (*loggerPluginImpl)(nil)
 
 type mockLoggerPlugin struct {
 	NameFunc      func() string
@@ -28,19 +25,13 @@ func (m *mockLoggerPlugin) LogString(ctx context.Context, typ LogType, log strin
 func TestLoggerPlugin(t *testing.T) {
 	var calledType LogType
 	var calledLog string
-	plugin := NewLoggerPlugin(
-		&mockLoggerPlugin{
-			NameFunc: func() string {
-				return "mock"
-			},
-			LogStringFunc: func(ctx context.Context, typ LogType, log string) error {
-				calledType = typ
-				calledLog = log
-				return nil
-			},
-		},
-	)
+	plugin := NewPlugin("mock", func(ctx context.Context, typ LogType, log string) error {
+		calledType = typ
+		calledLog = log
+		return nil
+	})
 
+	StatusOK := osquery.ExtensionStatus{Code: 0, Message: "OK"}
 	// Basic methods
 	assert.Equal(t, "logger", plugin.RegistryName())
 	assert.Equal(t, "mock", plugin.Name())
@@ -80,17 +71,10 @@ func TestLoggerPlugin(t *testing.T) {
 
 func TestLogPluginErrors(t *testing.T) {
 	var called bool
-	plugin := NewLoggerPlugin(
-		&mockLoggerPlugin{
-			NameFunc: func() string {
-				return "mock"
-			},
-			LogStringFunc: func(context.Context, LogType, string) error {
-				called = true
-				return errors.New("foobar")
-			},
-		},
-	)
+	plugin := NewPlugin("mock", func(ctx context.Context, typ LogType, log string) error {
+		called = true
+		return errors.New("foobar")
+	})
 
 	// Call with bad actions
 	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{}).Status.Code)
