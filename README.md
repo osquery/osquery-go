@@ -9,7 +9,7 @@ If you're interested in learning more about osquery, visit the [GitHub project](
 
 ## What is osquery-go?
 
-In osquery, SQL tables, configuration retrieval, log handling, etc are implemented via a robust plugin and extensions API. This project contains Go bindings for creating osquery extensions in Go.
+In osquery, SQL tables, configuration retrieval, log handling, etc. are implemented via a robust plugin and extensions API. This project contains Go bindings for creating osquery extensions in Go. To create an extension, you must create an executable binary which instantiates an `ExtensionManagerServer` and registers the plugins that you would like to be added to osquery. You can then have osquery load the extension in your desired context (ie: in a long running instance of `osqueryd` or during an interactive query session with `osqueryi`). For more information about how this process works at a lower level, see the osquery [wiki](https://osquery.readthedocs.io/en/latest/development/osquery-sdk/).
 
 ### Creating a new osquery table
 
@@ -75,7 +75,7 @@ func (f *ExampleTable) Generate(ctx context.Context, queryContext osquery.QueryC
 }
 ```
 
-To test this code, start an osquery shell:
+To test this code, start an osquery shell and find the path of the osquery extension socket:
 
 ```
 osqueryi --nodisable_extensions
@@ -87,7 +87,7 @@ osquery> select value from osquery_flags where name = 'extensions_socket';
 +-----------------------------------+
 ```
 
-Then start the Go extension:
+Then start the Go extension and have it communicate with osqueryi via the extension socket that you retrieved above:
 
 ```
 go run ./my_table_plugin.go --socket /Users/USERNAME/.osquery/shell.em
@@ -113,13 +113,13 @@ osquery> select * from foobar;
 osquery>
 ```
 
-This is obviously a contrived example, but it's straightforward to imagine the possibilities.
+This is obviously a contrived example, but it's easy to imagine the possibilities.
 
-Using the instructions found on the [wiki](https://osquery.readthedocs.io/en/latest/development/osquery-sdk/), you can easily deploy your extension with an existing osquery deployment.
+Using the instructions found on the [wiki](https://osquery.readthedocs.io/en/latest/development/osquery-sdk/), you can deploy your extension with an existing osquery deployment.
 
 ### Creating logger and config plugins
 
-The process required to create a config and/or logger plugin is very similar to the process outlined above for creating an osquery table. Specifically, you would create an `ExtensionManagerServer` instance in `func main`, register your plugin, and launch the extension as described above. The only difference is that the implementation of your plugin would be different. For example, consider the implementation of an example logger plugin:
+The process required to create a config and/or logger plugin is very similar to the process outlined above for creating an osquery table. Specifically, you would create an `ExtensionManagerServer` instance in `func main()`, register your plugin and launch the extension as described above. The only difference is that the implementation of your plugin would be different. For example, consider the implementation of an example logger plugin:
 
 ```go
 type ExampleLogger struct{}
@@ -187,7 +187,7 @@ All of these examples and more can be found in the [examples](./examples) subdir
 
 ### Execute queries in Go
 
-The same Thrift bindings can be used to create a Go client for the osqueryd or osqueryi's extension socket.
+This library can also be used to create a Go client for the osqueryd or osqueryi's extension socket. You can use this to add the ability to performantly execute osquery queries to your Go program. Consider the following example:
 
 ```go
 package main
