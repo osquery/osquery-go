@@ -4,7 +4,9 @@
 package logger
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 
 	"github.com/kolide/osquery-go/gen/osquery"
 )
@@ -57,8 +59,35 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 		err = t.logFn(ctx, LogTypeHealth, log)
 	} else if log, ok := request["init"]; ok {
 		err = t.logFn(ctx, LogTypeInit, log)
-	} else if log, ok := request["status"]; ok {
-		err = t.logFn(ctx, LogTypeStatus, log)
+	} else if _, ok := request["status"]; ok {
+		statusJSON := []byte(request["log"])
+		if len(statusJSON) == 0 {
+			return osquery.ExtensionResponse{
+				Status: &osquery.ExtensionStatus{
+					Code:    1,
+					Message: "got empty status",
+				},
+			}
+		}
+
+		// Dirty hack because osquery gives us malformed JSON.
+		statusJSON = bytes.Replace(statusJSON, []byte(`"":`), []byte(``), -1)
+		statusJSON[0] = '['
+		statusJSON[len(statusJSON)-1] = ']'
+
+		var parsedStatuses []json.RawMessage
+		if err := json.Unmarshal(statusJSON, &parsedStatuses); err != nil {
+			return osquery.ExtensionResponse{
+				Status: &osquery.ExtensionStatus{
+					Code:    1,
+					Message: "error parsing status logs: " + err.Error(),
+				},
+			}
+		}
+
+		for _, s := range parsedStatuses {
+			err = t.logFn(ctx, LogTypeStatus, string(s))
+		}
 	} else {
 		return osquery.ExtensionResponse{
 			Status: &osquery.ExtensionStatus{

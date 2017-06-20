@@ -63,10 +63,10 @@ func TestLoggerPlugin(t *testing.T) {
 	assert.Equal(t, "logged init", calledLog)
 
 	// Log status
-	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"status": "logged status"})
+	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"status": "true", "log": `{"":{"s":"0","f":"events.cpp","i":"828","m":"Event publisher failed setup: kernel: Cannot access \/dev\/osquery"},"":{"s":"0","f":"events.cpp","i":"828","m":"Event publisher failed setup: scnetwork: Publisher not used"},"":{"s":"0","f":"scheduler.cpp","i":"74","m":"Executing scheduled query macos_kextstat: SELECT * FROM time"}}`})
 	assert.Equal(t, &StatusOK, resp.Status)
 	assert.Equal(t, LogTypeStatus, calledType)
-	assert.Equal(t, "logged status", calledLog)
+	assert.Equal(t, `{"s":"0","f":"scheduler.cpp","i":"74","m":"Executing scheduled query macos_kextstat: SELECT * FROM time"}`, calledLog)
 }
 
 func TestLogPluginErrors(t *testing.T) {
@@ -80,6 +80,10 @@ func TestLogPluginErrors(t *testing.T) {
 	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{}).Status.Code)
 	assert.False(t, called)
 	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "bad"}).Status.Code)
+	assert.False(t, called)
+
+	// Call with empty status
+	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"status": "true", "log": ""}).Status.Code)
 	assert.False(t, called)
 
 	// Call with good action but logging fails
