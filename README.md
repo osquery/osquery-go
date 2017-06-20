@@ -59,17 +59,17 @@ func main() {
 	}
 }
 
-// ExampleColumns returns the columns that our table will return.
-func ExampleColumns() []table.ColumnDefinition {
+// FoobarColumns returns the columns that our table will return.
+func FoobarColumns() []table.ColumnDefinition {
 	return []table.ColumnDefinition{
 		table.TextColumn("foo"),
 		table.TextColumn("baz"),
 	}
 }
 
-// ExampleGenerate will be called whenever the table is queried. It should return
+// FoobarGenerate will be called whenever the table is queried. It should return
 // a full table scan.
-func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]map[string]string, error) {
+func FoobarGenerate(ctx context.Context, queryContext table.QueryContext) ([]map[string]string, error) {
 	return []map[string]string{
 		{
 			"foo": "bar",
@@ -131,10 +131,10 @@ The process required to create a config and/or logger plugin is very similar to 
 For example, consider the implementation of an example logger plugin:
 
 ```go
-
-// create the plugin. NewPlugin takes a plugin name and a 
-// logging function.
-loggerPlugin: = logger.NewPlugin("example_logger", LogString))
+func main() {
+    // create and register the plugin
+	server.RegisterPlugin(logger.NewPlugin("example_logger", LogString))
+}
 
 func LogString(ctx context.Context, typ logger.LogType, logText string) error {
 	log.Printf("%s: %s\n", typ, logText)
@@ -145,7 +145,10 @@ func LogString(ctx context.Context, typ logger.LogType, logText string) error {
 Additionally, consider the implementation of an example config plugin:
 
 ```go
-configPlugin := config.NewPlugin("example", GenerateConfigs)
+func main() {
+    // create and register the plugin
+	server.RegisterPlugin(config.NewPlugin("example", GenerateConfigs))
+}
 
 func GenerateConfigs(ctx context.Context) (map[string]string, error) {
 	return map[string]string{
