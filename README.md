@@ -214,6 +214,32 @@ func main() {
 }
 ```
 
+### Loading extensions with osqueryd
+
+If you write an extension with a logger or config plugin, you'll likely want to autoload the extensions when `osqueryd` starts. `osqueryd` has a few requirements for autoloading extensions, documented on the [wiki](https://osquery.readthedocs.io/en/latest/deployment/extensions/). Here's a quick example using a logging plugin to get you started:
+
+1. Build the plugin. Make sure to add `.ext` as the file extension. It is required by osqueryd.
+```go build -o /usr/local/osquery_extensions/my_logger.ext```
+
+2. Set the correct permissions on the file and directory. If `osqueryd` runs as root, the directory for the extension must only be writable by root. 
+
+```
+sudo chown -R root /usr/local/osquery_extensions/
+```
+
+3. Create an `extensions.load` file with the path of your extension.
+
+```
+echo "/usr/local/osquery_extensions/my_logger.ext" > /tmp/extensions.load
+```
+
+4. Start `osqueryd` with the `--extensions_autoload` flag.
+
+```
+sudo osqueryd --extensions_autoload=/tmp/extensions.load --logger-plugin=my_logger -verbose
+```
+
+
 ## Contributing
 
 For more information on contributing to this project, see [CONTRIBUTING.md](./CONTRIBUTING.md).
