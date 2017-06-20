@@ -172,10 +172,11 @@ func (s *ExtensionManagerServer) Run() error {
 	}()
 
 	err := <-errc
-	if err := s.Shutdown(); err != nil {
+	if err != nil {
 		return err
 	}
-	return err
+
+	return s.Shutdown()
 }
 
 // Ping implements the basic health check.
