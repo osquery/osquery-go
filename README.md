@@ -53,7 +53,7 @@ func main() {
 	// Create and register a new table plugin with the server.
 	// table.NewPlugin requires the table plugin name,
 	// a slice of Columns and a Generate function.
-	server.RegisterPlugin(table.NewPlugin("example_table", ExampleColumns(), ExampleGenerate))
+	server.RegisterPlugin(table.NewPlugin("foobar", ExampleColumns(), ExampleGenerate))
 	if err := server.Run(); err != nil {
 		log.Fatalln(err)
 	}
