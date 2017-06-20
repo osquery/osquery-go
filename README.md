@@ -16,7 +16,7 @@ In osquery, SQL tables, configuration retrieval, log handling, etc. are implemen
 To install this library, run the following:
 
 ```
-go get github.com/kolide/osquery-go
+go get github.com/kolide/osquery-go/...
 ```
 
 Alternatively, if you're using this in a project that uses a dependency management tool like [Glide](https://github.com/Masterminds/glide) or [Dep](https://github.com/golang/dep), then follow the relevant instructions provided by that tool.
@@ -27,6 +27,7 @@ Alternatively, if you're using this in a project that uses a dependency manageme
 
 If you want to create a custom osquery table in Go, you'll need to write an extension which registers the implementation of your table. Consider the following Go program:
 
+
 ```go
 package main
 
@@ -36,6 +37,7 @@ import (
 	"os"
 
 	"github.com/kolide/osquery-go"
+	"github.com/kolide/osquery-go/plugin/table"
 )
 
 func main() {
@@ -47,33 +49,27 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}
-	server.RegisterPlugin(osquery.NewTablePlugin(&ExampleTable{}))
+
+	// Create and register a new table plugin with the server.
+	// table.NewPlugin requires the table plugin name,
+	// a slice of Columns and a Generate function.
+	server.RegisterPlugin(table.NewPlugin("example_table", ExampleColumns(), ExampleGenerate))
 	if err := server.Run(); err != nil {
 		log.Fatalln(err)
 	}
 }
 
-// ExampleTable is a type that we create here so that we can attach methods
-// onto it. These methods will satisfy the interface required by the call to
-// osquery.NewTablePlugin when we register our table.
-type ExampleTable struct{}
-
-// Name returns the name of our table.
-func (f *ExampleTable) Name() string {
-	return "foobar"
-}
-
-// Columns returns the columns that our table will return.
-func (f *ExampleTable) Columns() []osquery.ColumnDefinition {
-	return []osquery.ColumnDefinition{
-		osquery.TextColumn("foo"),
-		osquery.TextColumn("baz"),
+// ExampleColumns returns the columns that our table will return.
+func ExampleColumns() []table.ColumnDefinition {
+	return []table.ColumnDefinition{
+		table.TextColumn("foo"),
+		table.TextColumn("baz"),
 	}
 }
 
-// Generate will be called whenever the table is queried. It should return
+// ExampleGenerate will be called whenever the table is queried. It should return
 // a full table scan.
-func (f *ExampleTable) Generate(ctx context.Context, queryContext osquery.QueryContext) ([]map[string]string, error) {
+func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]map[string]string, error) {
 	return []map[string]string{
 		{
 			"foo": "bar",
@@ -131,33 +127,17 @@ Using the instructions found on the [wiki](https://osquery.readthedocs.io/en/lat
 
 ### Creating logger and config plugins
 
-The process required to create a config and/or logger plugin is very similar to the process outlined above for creating an osquery table. Specifically, you would create an `ExtensionManagerServer` instance in `func main()`, register your plugin and launch the extension as described above. The only difference is that the implementation of your plugin would be different. For example, consider the implementation of an example logger plugin:
+The process required to create a config and/or logger plugin is very similar to the process outlined above for creating an osquery table. Specifically, you would create an `ExtensionManagerServer` instance in `func main()`, register your plugin and launch the extension as described above. The only difference is that the implementation of your plugin would be different. Each plugin package has a `NewPlugin` function which takes the plugin name as the first argument, followed by a list of reguired arguments to implement the plugin. 
+For example, consider the implementation of an example logger plugin:
 
 ```go
-type ExampleLogger struct{}
 
-func (f *ExampleLogger) Name() string {
-	return "example_logger"
-}
+// create the plugin. NewPlugin takes a plugin name and a 
+// logging function.
+loggerPlugin: = logger.NewPlugin("example_logger", LogString))
 
-func (f *ExampleLogger) LogString(ctx context.Context, typ osquery.LogType, logText string) error {
-	var typeString string
-	switch typ {
-	case osquery.LogTypeString:
-		typeString = "string"
-	case osquery.LogTypeSnapshot:
-		typeString = "snapshot"
-	case osquery.LogTypeHealth:
-		typeString = "health"
-	case osquery.LogTypeInit:
-		typeString = "init"
-	case osquery.LogTypeStatus:
-		typeString = "status"
-	default:
-		typeString = "unknown"
-	}
-
-	log.Printf("%s: %s\n", typeString, logText)
+func LogString(ctx context.Context, typ logger.LogType, logText string) error {
+	log.Printf("%s: %s\n", typ, logText)
 	return nil
 }
 ```
@@ -165,13 +145,9 @@ func (f *ExampleLogger) LogString(ctx context.Context, typ osquery.LogType, logT
 Additionally, consider the implementation of an example config plugin:
 
 ```go
-type ExampleConfig struct{}
+configPlugin := config.NewPlugin("example", GenerateConfigs)
 
-func (f *ExampleConfig) Name() string {
-	return "example_config"
-}
-
-func (f *ExampleConfig) GenerateConfigs(ctx context.Context) (map[string]string, error) {
+func GenerateConfigs(ctx context.Context) (map[string]string, error) {
 	return map[string]string{
 		"config1": `
 {
