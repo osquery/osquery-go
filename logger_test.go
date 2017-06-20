@@ -26,6 +26,7 @@ func (m *mockLoggerPlugin) LogString(ctx context.Context, typ LogType, log strin
 }
 
 func TestLoggerPlugin(t *testing.T) {
+	ok := StatusOK()
 	var calledType LogType
 	var calledLog string
 	plugin := NewLoggerPlugin(
@@ -44,36 +45,36 @@ func TestLoggerPlugin(t *testing.T) {
 	// Basic methods
 	assert.Equal(t, "logger", plugin.RegistryName())
 	assert.Equal(t, "mock", plugin.Name())
-	assert.Equal(t, StatusOK, plugin.Ping())
+	assert.Equal(t, ok, plugin.Ping())
 	assert.Equal(t, osquery.ExtensionPluginResponse{}, plugin.Routes())
 
 	// Log string
 	resp := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"string": "logged string"})
-	assert.Equal(t, &StatusOK, resp.Status)
+	assert.Equal(t, &ok, resp.Status)
 	assert.Equal(t, LogTypeString, calledType)
 	assert.Equal(t, "logged string", calledLog)
 
 	// Log snapshot
 	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"snapshot": "logged snapshot"})
-	assert.Equal(t, &StatusOK, resp.Status)
+	assert.Equal(t, &ok, resp.Status)
 	assert.Equal(t, LogTypeSnapshot, calledType)
 	assert.Equal(t, "logged snapshot", calledLog)
 
 	// Log health
 	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"health": "logged health"})
-	assert.Equal(t, &StatusOK, resp.Status)
+	assert.Equal(t, &ok, resp.Status)
 	assert.Equal(t, LogTypeHealth, calledType)
 	assert.Equal(t, "logged health", calledLog)
 
 	// Log init
 	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"init": "logged init"})
-	assert.Equal(t, &StatusOK, resp.Status)
+	assert.Equal(t, &ok, resp.Status)
 	assert.Equal(t, LogTypeInit, calledType)
 	assert.Equal(t, "logged init", calledLog)
 
 	// Log status
 	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"status": "logged status"})
-	assert.Equal(t, &StatusOK, resp.Status)
+	assert.Equal(t, &ok, resp.Status)
 	assert.Equal(t, LogTypeStatus, calledType)
 	assert.Equal(t, "logged status", calledLog)
 }

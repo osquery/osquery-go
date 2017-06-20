@@ -26,6 +26,7 @@ func (m *mockConfigPlugin) GenerateConfigs(ctx context.Context) (map[string]stri
 }
 
 func TestConfigPlugin(t *testing.T) {
+	ok := StatusOK()
 	var called bool
 	plugin := NewConfigPlugin(
 		&mockConfigPlugin{
@@ -44,13 +45,13 @@ func TestConfigPlugin(t *testing.T) {
 	// Basic methods
 	assert.Equal(t, "config", plugin.RegistryName())
 	assert.Equal(t, "mock", plugin.Name())
-	assert.Equal(t, StatusOK, plugin.Ping())
+	assert.Equal(t, ok, plugin.Ping())
 	assert.Equal(t, osquery.ExtensionPluginResponse{}, plugin.Routes())
 
 	// Call with good action
 	resp := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "genConfig"})
 	assert.True(t, called)
-	assert.Equal(t, &StatusOK, resp.Status)
+	assert.Equal(t, &ok, resp.Status)
 	assert.Equal(t, osquery.ExtensionPluginResponse{{"conf1": "foobar"}}, resp.Response)
 }
 
