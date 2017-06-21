@@ -97,12 +97,14 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 	return manager, nil
 }
 
-// RegisterPlugin adds an OsqueryPlugin to this extension manager.
-func (s *ExtensionManagerServer) RegisterPlugin(plugin OsqueryPlugin) {
-	if !validRegistryNames[plugin.RegistryName()] {
-		panic("invalid registry name: " + plugin.RegistryName())
+// RegisterPlugin adds one or more OsqueryPlugins to this extension manager.
+func (s *ExtensionManagerServer) RegisterPlugin(plugins ...OsqueryPlugin) {
+	for _, plugin := range plugins {
+		if !validRegistryNames[plugin.RegistryName()] {
+			panic("invalid registry name: " + plugin.RegistryName())
+		}
+		s.registry[plugin.RegistryName()][plugin.Name()] = plugin
 	}
-	s.registry[plugin.RegistryName()][plugin.Name()] = plugin
 }
 
 func (s *ExtensionManagerServer) genRegistry() osquery.ExtensionRegistry {
