@@ -1,8 +1,10 @@
 package: github.com/kolide/osquery-go
 import:
 - package: git.apache.org/thrift.git
-  version: server_socket_from_addr
-  repo: git@github.com:kolide/thrift.git
+  # We need this commit for the change introducing support for unix domain
+  # server sockets. After the next release, we can use a version range starting
+  # from that release.
+  version: b8ee72de5bf9318d50846852082325d0f932682b
   subpackages:
   - lib/go/thrift
 - package: github.com/pkg/errors
