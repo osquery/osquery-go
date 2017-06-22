@@ -1,10 +1,10 @@
 version: 2
 jobs:
-  build:
+  build-go1.8:
     docker:
         - image: golang:1.8
     working_directory: /go/src/github.com/kolide/osquery-go
-    steps:
+    steps: &steps
       - checkout
 
       - restore_cache:
@@ -29,3 +29,17 @@ jobs:
 
       - run: go test -race -cover -v $(go list ./... | grep -v /vendor/)
       - run: make examples
+
+  build-go1.9:
+    docker:
+        - image: golang:1.9
+    working_directory: /go/src/github.com/kolide/osquery-go
+    steps: *steps
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build-go1.8
+      - build-go1.9
+
