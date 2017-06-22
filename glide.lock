@@ -1,9 +1,8 @@
-hash: 5ce2c973e0be69cd2b70f9012013b3901f729063fe0aa851039153f40045e8a4
-updated: 2017-06-15T18:06:32.80983443-07:00
+hash: f1a4c4e166783b31fcca7b40cb6fbdf79d973fd0c26a54ae479e2e66af866ab9
+updated: 2017-06-22T10:33:47.094547644-04:00
 imports:
 - name: git.apache.org/thrift.git
-  version: 891852bb99ce0e280f55ccdb20c5c4be2d14a2ee
-  repo: git@github.com:kolide/thrift.git
+  version: b8ee72de5bf9318d50846852082325d0f932682b
   subpackages:
   - lib/go/thrift
 - name: github.com/pkg/errors
