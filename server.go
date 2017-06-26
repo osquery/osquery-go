@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -48,6 +49,7 @@ type ExtensionManagerServer struct {
 	server       thrift.TServer
 	transport    thrift.TServerTransport
 	timeout      time.Duration
+	mutex        sync.Mutex
 }
 
 // validRegistryNames contains the allowable RegistryName() values. If a plugin
@@ -99,6 +101,8 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 
 // RegisterPlugin adds one or more OsqueryPlugins to this extension manager.
 func (s *ExtensionManagerServer) RegisterPlugin(plugins ...OsqueryPlugin) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	for _, plugin := range plugins {
 		if !validRegistryNames[plugin.RegistryName()] {
 			panic("invalid registry name: " + plugin.RegistryName())
@@ -122,6 +126,7 @@ func (s *ExtensionManagerServer) genRegistry() osquery.ExtensionRegistry {
 // for requests from the osquery process. All plugins should be registered with
 // RegisterPlugin() before calling Start().
 func (s *ExtensionManagerServer) Start() error {
+	s.mutex.Lock()
 	registry := s.genRegistry()
 
 	stat, err := s.serverClient.RegisterExtension(
@@ -152,6 +157,7 @@ func (s *ExtensionManagerServer) Start() error {
 	}
 
 	s.server = thrift.NewTSimpleServer2(processor, s.transport)
+	s.mutex.Unlock()
 
 	return s.server.Serve()
 }
@@ -214,6 +220,8 @@ func (s *ExtensionManagerServer) Call(registry string, item string, request osqu
 
 // Shutdown stops the server and closes the listening socket.
 func (s *ExtensionManagerServer) Shutdown() error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	defer func() {
 		s.server = nil
 	}()
