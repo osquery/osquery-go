@@ -53,7 +53,7 @@ func main() {
 	// Create and register a new table plugin with the server.
 	// table.NewPlugin requires the table plugin name,
 	// a slice of Columns and a Generate function.
-	server.RegisterPlugin(table.NewPlugin("foobar", ExampleColumns(), ExampleGenerate))
+	server.RegisterPlugin(table.NewPlugin("foobar", FoobarColumns(), FoobarGenerate))
 	if err := server.Run(); err != nil {
 		log.Fatalln(err)
 	}
@@ -98,7 +98,7 @@ osquery> select value from osquery_flags where name = 'extensions_socket';
 Then start the Go extension and have it communicate with osqueryi via the extension socket that you retrieved above:
 
 ```
-go run ./my_table_plugin.go --socket /Users/USERNAME/.osquery/shell.em
+go run ./my_table_plugin.go /Users/USERNAME/.osquery/shell.em
 ```
 
 Alternatively, you can also autoload your extension when starting an osquery shell:
