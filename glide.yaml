@@ -2,7 +2,7 @@ package: github.com/kolide/osquery-go
 import:
 - package: git.apache.org/thrift.git
   repo: git@github.com:kolide/thrift.git
-  version: 7d1581917d37694e54a253c841f276002773188e
+  version: master
   subpackages:
   - lib/go/thrift
 - package: github.com/pkg/errors
