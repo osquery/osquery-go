@@ -77,6 +77,7 @@ const writeResultsAction = "writeResults"
 // Key that results are stored under
 const requestResultKey = "results"
 
+// Just used for unmarshalling the results passed from osquery.
 type resultsStruct struct {
 	Queries  map[string][]map[string]string `json:"queries"`
 	Statuses map[string]string              `json:"statuses"`
@@ -126,8 +127,8 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 		// Rewrite the results to a more sane format than that provided
 		// by osquery
 		var results []Result
-		for name, rows := range res.Queries {
-			status, err := strconv.Atoi(res.Statuses[name])
+		for name, statusStr := range res.Statuses {
+			status, err := strconv.Atoi(statusStr)
 			if err != nil {
 				return osquery.ExtensionResponse{
 					Status: &osquery.ExtensionStatus{
@@ -135,6 +136,11 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 						Message: "invalid status for query " + name + ": " + err.Error(),
 					},
 				}
+			}
+
+			rows := res.Queries[name]
+			if rows == nil {
+				rows = []map[string]string{}
 			}
 
 			results = append(results, Result{QueryName: name, Status: status, Rows: rows})
