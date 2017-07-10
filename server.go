@@ -55,9 +55,10 @@ type ExtensionManagerServer struct {
 // validRegistryNames contains the allowable RegistryName() values. If a plugin
 // attempts to register with another value, the program will panic.
 var validRegistryNames = map[string]bool{
-	"table":  true,
-	"logger": true,
-	"config": true,
+	"table":       true,
+	"logger":      true,
+	"config":      true,
+	"distributed": true,
 }
 
 type ServerOption func(*ExtensionManagerServer)

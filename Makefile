@@ -7,7 +7,7 @@ gen: ./osquery.thrift
 	rm -rf gen/osquery/extension-remote gen/osquery/extension_manager-remote
 	gofmt -w ./gen
 
-examples: example_query example_call example_logger example_table example_config
+examples: example_query example_call example_logger example_distributed example_table example_config
 
 example_query: examples/query/*.go
 	go build -o example_query ./examples/query/*.go
@@ -17,6 +17,9 @@ example_call: examples/call/*.go
 
 example_logger: examples/logger/*.go
 	go build -o example_logger.ext  ./examples/logger/*.go
+
+example_distributed: examples/distributed/*.go
+	go build -o example_distributed.ext  ./examples/distributed/*.go
 
 example_table: examples/table/*.go
 	go build -o example_table ./examples/table/*.go
