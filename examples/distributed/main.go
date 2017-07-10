@@ -26,8 +26,8 @@ func main() {
 	}
 }
 
-func getQueries(ctx context.Context) (map[string]string, error) {
-	return map[string]string{"time": "select * from time"}, nil
+func getQueries(ctx context.Context) (*distributed.GetQueriesResult, error) {
+	return &distributed.GetQueriesResult{Queries: map[string]string{"time": "select * from time"}}, nil
 }
 
 func writeResults(ctx context.Context, results []distributed.Result) error {

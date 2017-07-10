@@ -9,12 +9,29 @@ import (
 	"github.com/kolide/osquery-go/gen/osquery"
 )
 
+// GetQueriesResult contains the information about which queries the
+// distributed system should run.
+type GetQueriesResult struct {
+	// Queries is a map from query name to query SQL
+	Queries map[string]string `json:"queries"`
+	// Discovery is used for "discovery" queries in the distributed
+	// system. When used, discovery queries should be specified with query
+	// name as the key and the discover query SQL as the value. If this is
+	// nonempty, only queries for which the associated discovery query
+	// returns results will be run in osquery.
+	Discovery map[string]string `json:"discovery,omitempty"`
+	// AccelerateSeconds can be specified to have "accelerated" checkins
+	// for a given number of seconds after this checkin. Currently this
+	// means that checkins will occur every 5 seconds.
+	AccelerateSeconds int `json:"accelerate,omitempty"`
+}
+
 // GetQueriesFunc returns the queries that should be executed.
 // The returned map should include the query name as the keys, and the query
 // text as values. Results will be returned corresponding to the provided name.
 // The context argument can optionally be used for cancellation in long-running
 // operations.
-type GetQueriesFunc func(ctx context.Context) (map[string]string, error)
+type GetQueriesFunc func(ctx context.Context) (*GetQueriesResult, error)
 
 // Result contains the status and results for a distributed query.
 type Result struct {
@@ -96,7 +113,7 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 			}
 		}
 
-		queryJSON, err := json.Marshal(map[string](map[string]string){"queries": queries})
+		queryJSON, err := json.Marshal(queries)
 		if err != nil {
 			return osquery.ExtensionResponse{
 				Status: &osquery.ExtensionStatus{
