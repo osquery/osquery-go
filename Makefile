@@ -24,4 +24,7 @@ example_table: examples/table/*.go
 example_config: examples/config/*.go
 	go build -o example_config ./examples/config/*.go
 
+test: all
+	go test -race -cover -v $(shell go list ./... | grep -v /vendor/)
+
 .PHONY: all
