@@ -44,7 +44,7 @@ const defaultTimeout = 1 * time.Second
 type ExtensionManagerServer struct {
 	name         string
 	sockPath     string
-	serverClient *ExtensionManagerClient
+	serverClient ExtensionManager
 	registry     map[string](map[string]OsqueryPlugin)
 	server       thrift.TServer
 	transport    thrift.TServerTransport
@@ -127,38 +127,46 @@ func (s *ExtensionManagerServer) genRegistry() osquery.ExtensionRegistry {
 // for requests from the osquery process. All plugins should be registered with
 // RegisterPlugin() before calling Start().
 func (s *ExtensionManagerServer) Start() error {
-	s.mutex.Lock()
-	registry := s.genRegistry()
+	err := func() error {
+		s.mutex.Lock()
+		defer s.mutex.Unlock()
+		registry := s.genRegistry()
 
-	stat, err := s.serverClient.RegisterExtension(
-		&osquery.InternalExtensionInfo{
-			Name: s.name,
-		},
-		registry,
-	)
+		stat, err := s.serverClient.RegisterExtension(
+			&osquery.InternalExtensionInfo{
+				Name: s.name,
+			},
+			registry,
+		)
+
+		if err != nil {
+			return errors.Wrap(err, "registering extension")
+		}
+		if stat.Code != 0 {
+			return errors.Errorf("status %d registering extension: %s", stat.Code, stat.Message)
+		}
+
+		listenPath := fmt.Sprintf("%s.%d", s.sockPath, stat.UUID)
+
+		addr, err := net.ResolveUnixAddr("unix", listenPath)
+		if err != nil {
+			return errors.Wrapf(err, "resolving addr (%s)", addr)
+		}
+
+		processor := osquery.NewExtensionProcessor(s)
+
+		s.transport = thrift.NewTServerSocketFromAddrTimeout(addr, 0)
+		if err != nil {
+			return errors.Wrapf(err, "opening server socket (%s)", addr)
+		}
+
+		s.server = thrift.NewTSimpleServer2(processor, s.transport)
+		return nil
+	}()
+
 	if err != nil {
-		return errors.Wrap(err, "registering extension")
+		return err
 	}
-	if stat.Code != 0 {
-		return errors.Errorf("status %d registering extension: %s", stat.Code, stat.Message)
-	}
-
-	listenPath := fmt.Sprintf("%s.%d", s.sockPath, stat.UUID)
-
-	addr, err := net.ResolveUnixAddr("unix", listenPath)
-	if err != nil {
-		return errors.Wrapf(err, "resolving addr (%s)", addr)
-	}
-
-	processor := osquery.NewExtensionProcessor(s)
-
-	s.transport = thrift.NewTServerSocketFromAddrTimeout(addr, 0)
-	if err != nil {
-		return errors.Wrapf(err, "opening server socket (%s)", addr)
-	}
-
-	s.server = thrift.NewTSimpleServer2(processor, s.transport)
-	s.mutex.Unlock()
 
 	return s.server.Serve()
 }
