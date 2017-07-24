@@ -1,7 +1,12 @@
 package: github.com/kolide/osquery-go
 import:
 - package: git.apache.org/thrift.git
-  version: master
+  # This version includes concurrency fixes, but excludes changes to the
+  # library APIs. Using a version beyond this would require users to build the
+  # Thrift compiler from source to get API-compatible generated code. After the
+  # next Thrift release, this should become that tagged release (and the code
+  # generated appropriately).
+  version: 0dd823580c78a79ae9696eb9b3650e400fff140f
   subpackages:
   - lib/go/thrift
 - package: github.com/pkg/errors
