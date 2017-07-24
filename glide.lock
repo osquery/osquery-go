@@ -1,5 +1,5 @@
-hash: 317e8f4595c5c9495e43f9ef656ea144d9f790a6dcbaf6ebd0ad0e7eaf14d1b7
-updated: 2017-07-19T14:37:56.015119822-07:00
+hash: 7d69a8b42c4e747b1a3c16a0bd49ee59efb1732852a83a372b3ed1546c23d492
+updated: 2017-07-24T14:43:22.239301223-04:00
 imports:
 - name: git.apache.org/thrift.git
   version: 0dd823580c78a79ae9696eb9b3650e400fff140f
@@ -11,6 +11,7 @@ imports:
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
+  - require
 testImports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
