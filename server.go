@@ -127,6 +127,7 @@ func (s *ExtensionManagerServer) genRegistry() osquery.ExtensionRegistry {
 // for requests from the osquery process. All plugins should be registered with
 // RegisterPlugin() before calling Start().
 func (s *ExtensionManagerServer) Start() error {
+	var server thrift.TServer
 	err := func() error {
 		s.mutex.Lock()
 		defer s.mutex.Unlock()
@@ -161,6 +162,7 @@ func (s *ExtensionManagerServer) Start() error {
 		}
 
 		s.server = thrift.NewTSimpleServer2(processor, s.transport)
+		server = s.server
 		return nil
 	}()
 
@@ -168,7 +170,7 @@ func (s *ExtensionManagerServer) Start() error {
 		return err
 	}
 
-	return s.server.Serve()
+	return server.Serve()
 }
 
 // Run starts the extension manager and runs until an an interrupt
@@ -231,25 +233,16 @@ func (s *ExtensionManagerServer) Call(registry string, item string, request osqu
 func (s *ExtensionManagerServer) Shutdown() error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	defer func() {
-		s.server = nil
-	}()
 	if s.server != nil {
-		err := s.server.Stop()
-		if err != nil {
-			return errors.Wrap(err, "stopping server")
-		}
+		server := s.server
+		s.server = nil
+		// Stop the server asynchronously so that the current request
+		// can complete. Otherwise, this is vulnerable to deadlock if a
+		// shutdown request is being processed when shutdown is
+		// explicitly called.
+		go func() {
+			server.Stop()
+		}()
 	}
-
-	defer func() {
-		s.transport = nil
-	}()
-	if s.transport != nil {
-		err := s.transport.Close()
-		if err != nil {
-			return errors.Wrap(err, "closing transport")
-		}
-	}
-
 	return nil
 }
