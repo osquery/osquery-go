@@ -13,8 +13,7 @@ In osquery, SQL tables, configuration retrieval, log handling, etc. are implemen
 
 ## Install
 
-To install this library into your project, use `glide` or `dep` to vendor the dependencies.
-To install the library into your GOPATH, first clone the repo, and then use the provide Makefile:
+To install this library in your `GOPATH`:
 
 ```
 mkdir -p $GOPATH/src/github.com/kolide/
