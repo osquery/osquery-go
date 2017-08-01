@@ -1,5 +1,9 @@
 all: gen examples
 
+deps:
+	go get -u github.com/Masterminds/glide
+	glide install
+
 gen: ./osquery.thrift
 	rm -rf ./gen
 	mkdir ./gen
