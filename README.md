@@ -13,10 +13,14 @@ In osquery, SQL tables, configuration retrieval, log handling, etc. are implemen
 
 ## Install
 
-To install this library, run the following:
+To install this library into your project, use `glide` or `dep` to vendor the dependencies.
+To install the library into your GOPATH, first clone the repo, and then use the provide Makefile:
 
 ```
-go get github.com/kolide/osquery-go/...
+mkdir -p $GOPATH/src/github.com/kolide/
+git clone git@github.com:kolide/osquery-go.git $GOPATH/src/github.com/kolide/osquery-go
+cd $GOPATH/src/github.com/kolide/osquery-go
+make deps
 ```
 
 Alternatively, if you're using this in a project that uses a dependency management tool like [Glide](https://github.com/Masterminds/glide) or [Dep](https://github.com/golang/dep), then follow the relevant instructions provided by that tool.
