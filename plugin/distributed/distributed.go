@@ -2,8 +2,11 @@
 package distributed
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/kolide/osquery-go/gen/osquery"
@@ -100,6 +103,72 @@ type resultsStruct struct {
 	Statuses map[string]string              `json:"statuses"`
 }
 
+func convertRows(rows []interface{}) ([]map[string]string, error) {
+	var results []map[string]string
+	for _, intf := range rows {
+		row, ok := intf.(map[string]interface{})
+		if !ok {
+			return nil, errors.New("invalid row type for query")
+		}
+		result := make(map[string]string)
+		for col, val := range row {
+			sval, ok := val.(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid type for col %q", col)
+			}
+			result[col] = sval
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+func parseResults(jsn string) ([]Result, error) {
+	// Queries can be []map[string]string OR an empty string
+	// so we need to deal with an interface to accomodate two types
+	intermediate := struct {
+		Queries  map[string]interface{} `json:"queries"`
+		Statuses map[string]string      `json:"statuses"`
+	}{}
+	if err := json.NewDecoder(bytes.NewBufferString(jsn)).Decode(&intermediate); err != nil {
+		return nil, err
+	}
+	var results []Result
+	for queryName, status := range intermediate.Statuses {
+		var result Result
+		result.QueryName = queryName
+		statVal, err := strconv.Atoi(status)
+		if err != nil {
+			return nil, errors.New("invalid status")
+		}
+		result.Status = statVal
+		query, ok := intermediate.Queries[queryName]
+		// if query rows aren't present we are done, get next status/query
+		if !ok {
+			result.Rows = []map[string]string{}
+			results = append(results, result)
+			continue
+		}
+		// if query is present, deal with structural inconsistency it may be a string
+		// or an array of maps representing each row in result
+		switch val := query.(type) {
+		case string:
+			result.Rows = []map[string]string{}
+		case []interface{}:
+			rows, err := convertRows(val)
+			if err != nil {
+				return nil, err
+			}
+			result.Rows = rows
+		default:
+			return nil, errors.New("query type is not valid")
+		}
+
+		results = append(results, result)
+	}
+	return results, nil
+}
+
 func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
 	switch request[requestActionKey] {
 	case getQueriesAction:
@@ -129,9 +198,7 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 		}
 
 	case writeResultsAction:
-		var res resultsStruct
-		err := json.Unmarshal([]byte(request[requestResultKey]), &res)
-
+		results, err := parseResults(request[requestResultKey])
 		if err != nil {
 			return osquery.ExtensionResponse{
 				Status: &osquery.ExtensionStatus{
@@ -140,29 +207,7 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 				},
 			}
 		}
-
-		// Rewrite the results to a more sane format than that provided
-		// by osquery
-		var results []Result
-		for name, statusStr := range res.Statuses {
-			status, err := strconv.Atoi(statusStr)
-			if err != nil {
-				return osquery.ExtensionResponse{
-					Status: &osquery.ExtensionStatus{
-						Code:    1,
-						Message: "invalid status for query " + name + ": " + err.Error(),
-					},
-				}
-			}
-
-			rows := res.Queries[name]
-			if rows == nil {
-				rows = []map[string]string{}
-			}
-
-			results = append(results, Result{QueryName: name, Status: status, Rows: rows})
-		}
-
+		// invoke callback
 		err = t.writeResults(ctx, results)
 		if err != nil {
 			return osquery.ExtensionResponse{
