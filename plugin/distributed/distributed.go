@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 
 	"github.com/kolide/osquery-go/gen/osquery"
@@ -97,21 +98,44 @@ const writeResultsAction = "writeResults"
 // Key that results are stored under
 const requestResultKey = "results"
 
-// Just used for unmarshalling the results passed from osquery.
-type ResultsStruct struct {
-	Queries  map[string][]map[string]string `json:"queries"`
-	Statuses map[string]string              `json:"statuses"`
+// OsqueryInt handles unmarshaling integers in noncanonical osquery json.
+type OsqueryInt int
+
+// UnmarshalJSON marshals a json string, that is convertable to an int, for
+// example "234" -> 234.
+func (oi *OsqueryInt) UnmarshalJSON(buff []byte) error {
+	// zero value
+	if string(buff) == `""` {
+		return nil
+	}
+	val, err := strconv.Atoi(string(buff[1 : len(buff)-1]))
+	if err != nil {
+		return &json.UnmarshalTypeError{
+			Value:  string(buff),
+			Type:   reflect.TypeOf(oi),
+			Struct: "statuses",
+		}
+	}
+	*oi = OsqueryInt(val)
+	return nil
 }
 
+// ResultsStruct is used for unmarshalling the results passed from osquery.
+type ResultsStruct struct {
+	Queries  map[string][]map[string]string `json:"queries"`
+	Statuses map[string]OsqueryInt          `json:"statuses"`
+}
+
+// UnmarshalJSON turns structurally inconsistent osquery json into a ResultsStruct.
 func (rs *ResultsStruct) UnmarshalJSON(buff []byte) error {
 	emptyRow := []map[string]string{}
 	rs.Queries = make(map[string][]map[string]string)
-	rs.Statuses = make(map[string]string)
+	rs.Statuses = make(map[string]OsqueryInt)
 	// Queries can be []map[string]string OR an empty string
 	// so we need to deal with an interface to accomodate two types
 	intermediate := struct {
 		Queries  map[string]interface{} `json:"queries"`
-		Statuses map[string]string      `json:"statuses"`
+		Statuses map[string]OsqueryInt  `json:"statuses"`
 	}{}
 	if err := json.NewDecoder(bytes.NewBuffer(buff)).Decode(&intermediate); err != nil {
 		return err
@@ -149,11 +173,7 @@ func (rs *ResultsStruct) toResults() ([]Result, error) {
 		var result Result
 		result.QueryName = queryName
 		result.Rows = rows
-		val, err := strconv.Atoi(rs.Statuses[queryName])
-		if err != nil {
-			return nil, errors.New("invalid status")
-		}
-		result.Status = val
+		result.Status = int(rs.Statuses[queryName])
 		results = append(results, result)
 	}
 	return results, nil
