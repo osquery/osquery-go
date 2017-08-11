@@ -101,7 +101,7 @@ const requestResultKey = "results"
 // OsqueryInt handles unmarshaling integers in noncanonical osquery json.
 type OsqueryInt int
 
-// UnmarshalJSON marshals a json string, that is convertable to an int, for
+// UnmarshalJSON marshals a json string that is convertable to an int, for
 // example "234" -> 234.
 func (oi *OsqueryInt) UnmarshalJSON(buff []byte) error {
 	// zero value
@@ -137,20 +137,20 @@ func (rs *ResultsStruct) UnmarshalJSON(buff []byte) error {
 		Queries  map[string]interface{} `json:"queries"`
 		Statuses map[string]OsqueryInt  `json:"statuses"`
 	}{}
-	if err := json.NewDecoder(bytes.NewBuffer(buff)).Decode(&intermediate); err != nil {
+	if err := json.Unmarshal(buff, &intermediate); err != nil {
 		return err
 	}
 	for queryName, status := range intermediate.Statuses {
 		rs.Statuses[queryName] = status
-		// sometimes we have a status but don't have a corresponding
-		// result
+		// Sometimes we have a status but don't have a corresponding
+		// result.
 		queryResult, ok := intermediate.Queries[queryName]
 		if !ok {
 			rs.Queries[queryName] = emptyRow
 			continue
 		}
-		// deal with structurally inconsistent results, sometimes a query
-		// without any results is just a name with an empty string
+		// Deal with structurally inconsistent results, sometimes a query
+		// without any results is just a name with an empty string.
 		switch val := queryResult.(type) {
 		case string:
 			rs.Queries[queryName] = emptyRow
