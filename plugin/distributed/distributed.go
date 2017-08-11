@@ -2,7 +2,6 @@
 package distributed
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -170,10 +169,11 @@ func (rs *ResultsStruct) UnmarshalJSON(buff []byte) error {
 func (rs *ResultsStruct) toResults() ([]Result, error) {
 	var results []Result
 	for queryName, rows := range rs.Queries {
-		var result Result
-		result.QueryName = queryName
-		result.Rows = rows
-		result.Status = int(rs.Statuses[queryName])
+		result := Result{
+			QueryName: queryName,
+			Rows:      rows,
+			Status:    int(rs.Statuses[queryName]),
+		}
 		results = append(results, result)
 	}
 	return results, nil
@@ -229,7 +229,7 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 
 	case writeResultsAction:
 		var rs ResultsStruct
-		if err := json.NewDecoder(bytes.NewBufferString(request[requestResultKey])).Decode(&rs); err != nil {
+		if err := json.Unmarshal([]byte(request[requestResultKey]), &rs); err != nil {
 			return osquery.ExtensionResponse{
 				Status: &osquery.ExtensionStatus{
 					Code:    1,
