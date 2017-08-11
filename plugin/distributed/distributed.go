@@ -98,9 +98,65 @@ const writeResultsAction = "writeResults"
 const requestResultKey = "results"
 
 // Just used for unmarshalling the results passed from osquery.
-type resultsStruct struct {
+type ResultsStruct struct {
 	Queries  map[string][]map[string]string `json:"queries"`
 	Statuses map[string]string              `json:"statuses"`
+}
+
+func (rs *ResultsStruct) UnmarshalJSON(buff []byte) error {
+	emptyRow := []map[string]string{}
+	rs.Queries = make(map[string][]map[string]string)
+	rs.Statuses = make(map[string]string)
+	// Queries can be []map[string]string OR an empty string
+	// so we need to deal with an interface to accomodate two types
+	intermediate := struct {
+		Queries  map[string]interface{} `json:"queries"`
+		Statuses map[string]string      `json:"statuses"`
+	}{}
+	if err := json.NewDecoder(bytes.NewBuffer(buff)).Decode(&intermediate); err != nil {
+		return err
+	}
+	for queryName, status := range intermediate.Statuses {
+		rs.Statuses[queryName] = status
+		// sometimes we have a status but don't have a corresponding
+		// result
+		queryResult, ok := intermediate.Queries[queryName]
+		if !ok {
+			rs.Queries[queryName] = emptyRow
+			continue
+		}
+		// deal with structurally inconsistent results, sometimes a query
+		// without any results is just a name with an empty string
+		switch val := queryResult.(type) {
+		case string:
+			rs.Queries[queryName] = emptyRow
+		case []interface{}:
+			results, err := convertRows(val)
+			if err != nil {
+				return err
+			}
+			rs.Queries[queryName] = results
+		default:
+			return fmt.Errorf("results for %q unknown type", queryName)
+		}
+	}
+	return nil
+}
+
+func (rs *ResultsStruct) toResults() ([]Result, error) {
+	var results []Result
+	for queryName, rows := range rs.Queries {
+		var result Result
+		result.QueryName = queryName
+		result.Rows = rows
+		val, err := strconv.Atoi(rs.Statuses[queryName])
+		if err != nil {
+			return nil, errors.New("invalid status")
+		}
+		result.Status = val
+		results = append(results, result)
+	}
+	return results, nil
 }
 
 func convertRows(rows []interface{}) ([]map[string]string, error) {
@@ -118,52 +174,6 @@ func convertRows(rows []interface{}) ([]map[string]string, error) {
 			}
 			result[col] = sval
 		}
-		results = append(results, result)
-	}
-	return results, nil
-}
-
-func parseResults(jsn string) ([]Result, error) {
-	// Queries can be []map[string]string OR an empty string
-	// so we need to deal with an interface to accomodate two types
-	intermediate := struct {
-		Queries  map[string]interface{} `json:"queries"`
-		Statuses map[string]string      `json:"statuses"`
-	}{}
-	if err := json.NewDecoder(bytes.NewBufferString(jsn)).Decode(&intermediate); err != nil {
-		return nil, err
-	}
-	var results []Result
-	for queryName, status := range intermediate.Statuses {
-		var result Result
-		result.QueryName = queryName
-		statVal, err := strconv.Atoi(status)
-		if err != nil {
-			return nil, errors.New("invalid status")
-		}
-		result.Status = statVal
-		query, ok := intermediate.Queries[queryName]
-		// if query rows aren't present we are done, get next status/query
-		if !ok {
-			result.Rows = []map[string]string{}
-			results = append(results, result)
-			continue
-		}
-		// if query is present, deal with structural inconsistency it may be a string
-		// or an array of maps representing each row in result
-		switch val := query.(type) {
-		case string:
-			result.Rows = []map[string]string{}
-		case []interface{}:
-			rows, err := convertRows(val)
-			if err != nil {
-				return nil, err
-			}
-			result.Rows = rows
-		default:
-			return nil, errors.New("query type is not valid")
-		}
-
 		results = append(results, result)
 	}
 	return results, nil
@@ -198,12 +208,21 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 		}
 
 	case writeResultsAction:
-		results, err := parseResults(request[requestResultKey])
-		if err != nil {
+		var rs ResultsStruct
+		if err := json.NewDecoder(bytes.NewBufferString(request[requestResultKey])).Decode(&rs); err != nil {
 			return osquery.ExtensionResponse{
 				Status: &osquery.ExtensionStatus{
 					Code:    1,
 					Message: "error unmarshalling results: " + err.Error(),
+				},
+			}
+		}
+		results, err := rs.toResults()
+		if err != nil {
+			return osquery.ExtensionResponse{
+				Status: &osquery.ExtensionStatus{
+					Code:    1,
+					Message: "error writing results: " + err.Error(),
 				},
 			}
 		}
