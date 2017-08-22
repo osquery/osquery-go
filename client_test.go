@@ -11,7 +11,7 @@ import (
 
 func TestQueryRows(t *testing.T) {
 	mock := &mock.ExtensionManager{}
-	client := &ExtensionManagerClient{client: mock}
+	client := &ExtensionManagerClient{Client: mock}
 
 	// Transport related error
 	mock.QueryFunc = func(sql string) (*osquery.ExtensionResponse, error) {
