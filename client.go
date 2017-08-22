@@ -80,9 +80,42 @@ func (c *ExtensionManagerClient) Options() (osquery.InternalOptionList, error) {
 	return c.client.Options()
 }
 
-// Query requests a query to be run and returns the result rows.
+// Query requests a query to be run and returns the extension response.
+// Consider using the QueryRow or QueryRows helpers for a more friendly
+// interface.
 func (c *ExtensionManagerClient) Query(sql string) (*osquery.ExtensionResponse, error) {
 	return c.client.Query(sql)
+}
+
+// QueryRows is a helper that executes the requested query and returns the
+// results. It handles checking both the transport level errors and the osquery
+// internal errors by returning a normal Go error type.
+func (c *ExtensionManagerClient) QueryRows(sql string) ([]map[string]string, error) {
+	res, err := c.Query(sql)
+	if err != nil {
+		return nil, errors.Wrap(err, "transport error in query")
+	}
+	if res.Status == nil {
+		return nil, errors.New("query returned nil status")
+	}
+	if res.Status.Code != 0 {
+		return nil, errors.Errorf("query returned error: %s", res.Status.Message)
+	}
+	return res.Response, nil
+
+}
+
+// QueryRow behaves similarly to QueryRows, but it returns an error if the
+// query does not return exactly one row.
+func (c *ExtensionManagerClient) QueryRow(sql string) (map[string]string, error) {
+	res, err := c.QueryRows(sql)
+	if err != nil {
+		return nil, err
+	}
+	if len(res) != 1 {
+		return nil, errors.Errorf("expected 1 row, got %d", len(res))
+	}
+	return res[0], nil
 }
 
 // GetQueryColumns requests the columns returned by the parsed query.
