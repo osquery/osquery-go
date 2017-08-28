@@ -142,7 +142,7 @@ func TestDistributedPluginErrors(t *testing.T) {
 	assert.False(t, getCalled)
 	assert.False(t, writeCalled)
 	assert.Equal(t, int32(1), resp.Status.Code)
-	assert.Contains(t, resp.Status.Message, `error unmarshalling results: json: cannot unmarshal "foo" into Go struct field .statuses of type *distributed.OsqueryInt`)
+	assert.Contains(t, resp.Status.Message, `error unmarshalling results: json: cannot unmarshal`)
 
 	// Error unmarshalling results
 	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "writeResults", "results": "{}"})
@@ -169,20 +169,22 @@ func TestUnmarshalStatus(t *testing.T) {
 		success  bool
 		expected OsqueryInt
 	}{
-		{[]byte{}, false, 0},
+		{[]byte{}, true, 0},
 		{[]byte(`""`), true, 0},
 		{[]byte(`"23"`), true, 23},
 		{[]byte(`"0000"`), true, 0},
 		{[]byte(`"-12"`), true, -12},
 		{[]byte(`"0"`), true, 0},
 		{[]byte(`"foo"`), false, 0},
+		{[]byte(`0`), true, 0},
+		{[]byte(`1`), true, 1},
 	}
 	for i, testCase := range testCases {
 		t.Run(fmt.Sprintf("#%.2d", i), func(t *testing.T) {
-			var val OsqueryInt
-			err := json.NewDecoder(bytes.NewBuffer(testCase.json)).Decode(&val)
-			require.Equal(t, testCase.success, (err == nil))
-			assert.Equal(t, testCase.expected, val)
+			var i OsqueryInt
+			err := i.UnmarshalJSON(testCase.json)
+			require.Equal(t, testCase.success, (err == nil), fmt.Sprintf("Trying to convert %s", string(testCase.json)))
+			assert.Equal(t, testCase.expected, i)
 		})
 	}
 }

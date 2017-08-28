@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/kolide/osquery-go/gen/osquery"
 )
@@ -103,11 +104,25 @@ type OsqueryInt int
 // UnmarshalJSON marshals a json string that is convertable to an int, for
 // example "234" -> 234.
 func (oi *OsqueryInt) UnmarshalJSON(buff []byte) error {
-	// zero value
-	if string(buff) == `""` {
+	s := string(buff)
+	if strings.Contains(s, `"`) {
+		unquoted, err := strconv.Unquote(s)
+		if err != nil {
+			return &json.UnmarshalTypeError{
+				Value:  string(buff),
+				Type:   reflect.TypeOf(oi),
+				Struct: "statuses",
+			}
+		}
+		s = unquoted
+	}
+
+	if len(s) == 0 {
+		*oi = OsqueryInt(0)
 		return nil
 	}
-	val, err := strconv.Atoi(string(buff[1 : len(buff)-1]))
+
+	parsedInt, err := strconv.ParseInt(s, 10, 32)
 	if err != nil {
 		return &json.UnmarshalTypeError{
 			Value:  string(buff),
@@ -115,7 +130,8 @@ func (oi *OsqueryInt) UnmarshalJSON(buff []byte) error {
 			Struct: "statuses",
 		}
 	}
-	*oi = OsqueryInt(val)
+
+	*oi = OsqueryInt(parsedInt)
 	return nil
 }
 
