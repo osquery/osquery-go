@@ -103,11 +103,19 @@ type OsqueryInt int
 // UnmarshalJSON marshals a json string that is convertable to an int, for
 // example "234" -> 234.
 func (oi *OsqueryInt) UnmarshalJSON(buff []byte) error {
-	// zero value
-	if string(buff) == `""` {
+	if len(buff) > 0 && buff[0] == '"' {
+		buff = buff[1:]
+	}
+	if len(buff) > 0 && buff[len(buff)-1] == '"' {
+		buff = buff[:len(buff)-1]
+	}
+
+	if len(buff) == 0 {
+		*oi = OsqueryInt(0)
 		return nil
 	}
-	val, err := strconv.Atoi(string(buff[1 : len(buff)-1]))
+
+	parsedInt, err := strconv.ParseInt(string(buff), 10, 32)
 	if err != nil {
 		return &json.UnmarshalTypeError{
 			Value:  string(buff),
@@ -115,7 +123,8 @@ func (oi *OsqueryInt) UnmarshalJSON(buff []byte) error {
 			Struct: "statuses",
 		}
 	}
-	*oi = OsqueryInt(val)
+
+	*oi = OsqueryInt(parsedInt)
 	return nil
 }
 
