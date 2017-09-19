@@ -1,9 +1,6 @@
-// +build !windows
-
 package osquery
 
 import (
-	"net"
 	"time"
 
 	"github.com/kolide/osquery-go/gen/osquery"
@@ -33,16 +30,12 @@ type ExtensionManagerClient struct {
 // the provided path. If resolving the address or connecting to the socket
 // fails, this function will error.
 func NewClient(sockPath string, timeout time.Duration) (*ExtensionManagerClient, error) {
-	addr, err := net.ResolveUnixAddr("unix", sockPath)
+	conn, err := OpenPipe(`\\.\pipe\osquery.em`)
 	if err != nil {
-		return nil, errors.Wrap(err, "resolving socket path "+sockPath)
+		return nil, err
 	}
 
-	trans := thrift.NewTSocketFromAddrTimeout(addr, timeout)
-	if err := trans.Open(); err != nil {
-		return nil, errors.Wrap(err, "opening socket transport")
-	}
-
+	trans := thrift.NewTSocketFromConnTimeout(conn, timeout)
 	client := osquery.NewExtensionManagerClientFactory(trans,
 		thrift.NewTBinaryProtocolFactoryDefault())
 
