@@ -29,8 +29,8 @@ type ExtensionManagerClient struct {
 // NewClient creates a new client communicating to osquery over the socket at
 // the provided path. If resolving the address or connecting to the socket
 // fails, this function will error.
-func NewClient(sockPath string, timeout time.Duration) (*ExtensionManagerClient, error) {
-	conn, err := OpenPipe(`\\.\pipe\osquery.em`)
+func NewClient(pipePath string, timeout time.Duration) (*ExtensionManagerClient, error) {
+	conn, err := OpenTransport(pipePath, timeout)
 	if err != nil {
 		return nil, err
 	}
