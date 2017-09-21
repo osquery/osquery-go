@@ -1,12 +1,10 @@
-// +build !windows
-
 package osquery
 
 import (
-	"net"
 	"time"
 
 	"github.com/kolide/osquery-go/gen/osquery"
+	"github.com/kolide/osquery-go/transport"
 	"github.com/pkg/errors"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
@@ -32,19 +30,16 @@ type ExtensionManagerClient struct {
 // NewClient creates a new client communicating to osquery over the socket at
 // the provided path. If resolving the address or connecting to the socket
 // fails, this function will error.
-func NewClient(sockPath string, timeout time.Duration) (*ExtensionManagerClient, error) {
-	addr, err := net.ResolveUnixAddr("unix", sockPath)
+func NewClient(path string, timeout time.Duration) (*ExtensionManagerClient, error) {
+	trans, err := transport.Open(path, timeout)
 	if err != nil {
-		return nil, errors.Wrap(err, "resolving socket path "+sockPath)
+		return nil, err
 	}
 
-	trans := thrift.NewTSocketFromAddrTimeout(addr, timeout)
-	if err := trans.Open(); err != nil {
-		return nil, errors.Wrap(err, "opening socket transport")
-	}
-
-	client := osquery.NewExtensionManagerClientFactory(trans,
-		thrift.NewTBinaryProtocolFactoryDefault())
+	client := osquery.NewExtensionManagerClientFactory(
+		trans,
+		thrift.NewTBinaryProtocolFactoryDefault(),
+	)
 
 	return &ExtensionManagerClient{client, trans}, nil
 }
