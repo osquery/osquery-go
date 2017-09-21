@@ -1,7 +1,5 @@
 // +build !windows
 
-// Package transport provides Thrift TTransport implementations for use on
-// mac/linux (TSocket) and Windows (custom named pipe implementation)
 package transport
 
 import (
@@ -14,7 +12,7 @@ import (
 
 // Open opens the unix domain socket with the provided path and timeout,
 // returning a TTransport.
-func Open(sockPath string, timeout time.Duration) (thrift.TTransport, error) {
+func Open(sockPath string, timeout time.Duration) (*thrift.TSocket, error) {
 	addr, err := net.ResolveUnixAddr("unix", sockPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolving socket path '%s'", sockPath)
@@ -26,4 +24,13 @@ func Open(sockPath string, timeout time.Duration) (thrift.TTransport, error) {
 	}
 
 	return trans, nil
+}
+
+func OpenServer(listenPath string, timeout time.Duration) (*thrift.TServerSocket, error) {
+	addr, err := net.ResolveUnixAddr("unix", listenPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "resolving addr (%s)", addr)
+	}
+
+	return thrift.NewTServerSocketFromAddrTimeout(addr, 0), nil
 }

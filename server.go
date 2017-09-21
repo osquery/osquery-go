@@ -3,7 +3,6 @@ package osquery
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"os/signal"
 	"sync"
@@ -13,6 +12,7 @@ import (
 	"git.apache.org/thrift.git/lib/go/thrift"
 
 	"github.com/kolide/osquery-go/gen/osquery"
+	"github.com/kolide/osquery-go/transport"
 	"github.com/pkg/errors"
 )
 
@@ -149,16 +149,11 @@ func (s *ExtensionManagerServer) Start() error {
 
 		listenPath := fmt.Sprintf("%s.%d", s.sockPath, stat.UUID)
 
-		addr, err := net.ResolveUnixAddr("unix", listenPath)
-		if err != nil {
-			return errors.Wrapf(err, "resolving addr (%s)", addr)
-		}
-
 		processor := osquery.NewExtensionProcessor(s)
 
-		s.transport = thrift.NewTServerSocketFromAddrTimeout(addr, 0)
+		s.transport, err = transport.OpenServer(listenPath, s.timeout)
 		if err != nil {
-			return errors.Wrapf(err, "opening server socket (%s)", addr)
+			return errors.Wrapf(err, "opening server socket (%s)", listenPath)
 		}
 
 		s.server = thrift.NewTSimpleServer2(processor, s.transport)
