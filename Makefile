@@ -1,8 +1,8 @@
 all: gen examples
 
 deps:
-	go get -u github.com/Masterminds/glide
-	glide install
+	go get -u github.com/golang/dep/cmd/dep
+	dep ensure -vendor-only
 
 gen: ./osquery.thrift
 	rm -rf ./gen
