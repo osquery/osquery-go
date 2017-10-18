@@ -27,7 +27,7 @@ sudo ./example_call /var/osquery/osquery.em config example_config genConfig
 	if err != nil {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}
-	server.RegisterPlugin(config.NewPlugin("example", GenerateConfigs))
+	server.RegisterPlugin(config.NewPlugin("example_config", GenerateConfigs))
 	if err := server.Run(); err != nil {
 		log.Fatal(err)
 	}
