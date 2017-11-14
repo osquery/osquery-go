@@ -40,11 +40,11 @@ type GetQueriesFunc func(ctx context.Context) (*GetQueriesResult, error)
 // Result contains the status and results for a distributed query.
 type Result struct {
 	// QueryName is the name that was originally provided for the query.
-	QueryName string
+	QueryName string `json:"query_name"`
 	// Status is an integer status code for the query execution (0 = OK)
-	Status int
+	Status int `json:"status"`
 	// Rows is the result rows of the query.
-	Rows []map[string]string
+	Rows []map[string]string `json:"rows"`
 }
 
 // WriteResultsFunc writes the results of the executed distributed queries. The
