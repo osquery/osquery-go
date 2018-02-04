@@ -1,3 +1,5 @@
+PATH := $(GOPATH)/bin:$(PATH)
+
 all: gen examples
 
 deps:
