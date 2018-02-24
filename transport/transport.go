@@ -3,7 +3,9 @@
 package transport
 
 import (
+	"context"
 	"net"
+	"os"
 	"time"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
@@ -16,6 +18,14 @@ func Open(sockPath string, timeout time.Duration) (*thrift.TSocket, error) {
 	addr, err := net.ResolveUnixAddr("unix", sockPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolving socket path '%s'", sockPath)
+	}
+
+	// the timeout parameter is passed to thrift, which passes it to net.DialTimeout
+	// but it looks like net.DialTimeout ignores timeouts for unix socket and immediately returns an error
+	// waitForSocket will loop every 200ms to stat the socket path,
+	// or until the timeout value passes, similar to the C++ and python implementations.
+	if err := waitForSocket(sockPath, timeout); err != nil {
+		return nil, errors.Wrapf(err, "waiting for unix socket to be available: %s", sockPath)
 	}
 
 	trans := thrift.NewTSocketFromAddrTimeout(addr, timeout)
@@ -33,4 +43,21 @@ func OpenServer(listenPath string, timeout time.Duration) (*thrift.TServerSocket
 	}
 
 	return thrift.NewTServerSocketFromAddrTimeout(addr, 0), nil
+}
+
+func waitForSocket(sockPath string, timeout time.Duration) error {
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			if _, err := os.Stat(sockPath); err == nil {
+				return nil
+			}
+		}
+	}
 }
