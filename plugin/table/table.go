@@ -240,7 +240,7 @@ func parseConstraintList(constraints json.RawMessage) ([]Constraint, error) {
 		return []Constraint{}, nil
 	}
 
-	var cList []map[string]string
+	var cList []map[string]interface{}
 	err = json.Unmarshal(constraints, &cList)
 	if err != nil {
 		// cannot do anything with other types
@@ -249,14 +249,28 @@ func parseConstraintList(constraints json.RawMessage) ([]Constraint, error) {
 
 	cl := []Constraint{}
 	for _, c := range cList {
-		opInt, err := strconv.Atoi(c["op"])
-		if err != nil {
-			return nil, errors.Errorf("parsing operator int: %s", c["op"])
+		var op Operator
+		switch opVal := c["op"].(type) {
+		case string: // osquery < 3.0 with stringy types
+			opInt, err := strconv.Atoi(opVal)
+			if err != nil {
+				return nil, errors.Errorf("parsing operator int: %s", c["op"])
+			}
+			op = Operator(opInt)
+		case float64: // osquery > 3.0 with strong types
+			op = Operator(opVal)
+		default:
+			return nil, errors.Errorf("cannot parse type %T", opVal)
+		}
+
+		expr, ok := c["expr"].(string)
+		if !ok {
+			return nil, errors.Errorf("expr should be string: %s", c["expr"])
 		}
 
 		cl = append(cl, Constraint{
-			Operator:   Operator(opInt),
-			Expression: c["expr"],
+			Operator:   op,
+			Expression: expr,
 		})
 	}
 	return cl, nil

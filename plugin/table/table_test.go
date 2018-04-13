@@ -8,6 +8,7 @@ import (
 
 	"github.com/kolide/osquery-go/gen/osquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTablePlugin(t *testing.T) {
@@ -248,6 +249,72 @@ func TestParseQueryContext(t *testing.T) {
 			} else {
 				assert.Equal(t, &tt.context, context)
 			}
+		})
+	}
+}
+
+func TestParseVaryingQueryContexts(t *testing.T) {
+	var testCases = []struct {
+		json            string
+		expectedContext *QueryContext
+		shouldErr       bool
+	}{
+		{ // Stringy JSON from osquery version < 3
+			`{"constraints":[{"name":"domain","list":[{"op":"2","expr":"kolide.co"}],"affinity":"TEXT"},{"name":"email","list":"","affinity":"TEXT"}]}`,
+			&QueryContext{
+				Constraints: map[string]ConstraintList{
+					"domain": ConstraintList{Affinity: "TEXT", Constraints: []Constraint{Constraint{Operator: OperatorEquals, Expression: "kolide.co"}}},
+					"email":  ConstraintList{Affinity: "TEXT", Constraints: []Constraint{}},
+				},
+			},
+			false,
+		},
+		{ // Strongly typed JSON from osquery version > 3
+			`{"constraints":[{"name":"domain","list":[{"op":2,"expr":"kolide.co"}],"affinity":"TEXT"},{"name":"email","list":[],"affinity":"TEXT"}]}`,
+			&QueryContext{
+				Constraints: map[string]ConstraintList{
+					"domain": ConstraintList{Affinity: "TEXT", Constraints: []Constraint{Constraint{Operator: OperatorEquals, Expression: "kolide.co"}}},
+					"email":  ConstraintList{Affinity: "TEXT", Constraints: []Constraint{}},
+				},
+			},
+			false,
+		},
+		{ // Stringy
+			`{"constraints":[{"name":"path","list":[{"op":"65","expr":"%foobar"}],"affinity":"TEXT"},{"name":"query","list":[{"op":"2","expr":"kMDItemFSName = \"google*\""}],"affinity":"TEXT"}]}`,
+			&QueryContext{
+				Constraints: map[string]ConstraintList{
+					"path":  ConstraintList{Affinity: "TEXT", Constraints: []Constraint{Constraint{Operator: OperatorLike, Expression: "%foobar"}}},
+					"query": ConstraintList{Affinity: "TEXT", Constraints: []Constraint{Constraint{Operator: OperatorEquals, Expression: "kMDItemFSName = \"google*\""}}},
+				},
+			},
+			false,
+		},
+		{ // Strong
+			`{"constraints":[{"name":"path","list":[{"op":65,"expr":"%foobar"}],"affinity":"TEXT"},{"name":"query","list":[{"op":2,"expr":"kMDItemFSName = \"google*\""}],"affinity":"TEXT"}]}`,
+			&QueryContext{
+				Constraints: map[string]ConstraintList{
+					"path":  ConstraintList{Affinity: "TEXT", Constraints: []Constraint{Constraint{Operator: OperatorLike, Expression: "%foobar"}}},
+					"query": ConstraintList{Affinity: "TEXT", Constraints: []Constraint{Constraint{Operator: OperatorEquals, Expression: "kMDItemFSName = \"google*\""}}},
+				},
+			},
+			false,
+		},
+
+		// Error cases
+		{`{bad json}`, nil, true},
+		{`{"constraints":[{"name":"foo","list":["bar", "baz"],"affinity":"TEXT"}]`, nil, true},
+	}
+
+	for _, tt := range testCases {
+		t.Run("", func(t *testing.T) {
+			context, err := parseQueryContext(tt.json)
+			if tt.shouldErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expectedContext, context)
 		})
 	}
 }
