@@ -3,10 +3,7 @@ package osquery
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
@@ -52,6 +49,7 @@ type ExtensionManagerServer struct {
 	timeout      time.Duration
 	pingInterval time.Duration // How often to ping osquery server
 	mutex        sync.Mutex
+	started      bool // Used to ensure tests wait until the server is actually started
 }
 
 // validRegistryNames contains the allowable RegistryName() values. If a plugin
@@ -167,6 +165,9 @@ func (s *ExtensionManagerServer) Start() error {
 
 		s.server = thrift.NewTSimpleServer2(processor, s.transport)
 		server = s.server
+
+		s.started = true
+
 		return nil
 	}()
 
@@ -177,21 +178,12 @@ func (s *ExtensionManagerServer) Start() error {
 	return server.Serve()
 }
 
-// Run starts the extension manager and runs until an an interrupt
-// signal is received.
-// Run will call Shutdown before exiting.
+// Run starts the extension manager and runs until osquery calls for a shutdown
+// or the osquery instance goes away.
 func (s *ExtensionManagerServer) Run() error {
 	errc := make(chan error)
 	go func() {
 		errc <- s.Start()
-	}()
-
-	// Interrupt handler.
-	go func() {
-		sig := make(chan os.Signal)
-		signal.Notify(sig, os.Interrupt, os.Kill, syscall.SIGTERM)
-		<-sig
-		errc <- nil
 	}()
 
 	// Watch for the osquery process going away. If so, initiate shutdown.
@@ -265,5 +257,18 @@ func (s *ExtensionManagerServer) Shutdown() error {
 			server.Stop()
 		}()
 	}
+
 	return nil
+}
+
+// Useful for testing
+func (s *ExtensionManagerServer) waitStarted() {
+	for {
+		s.mutex.Lock()
+		started := s.started
+		s.mutex.Unlock()
+		if started {
+			break
+		}
+	}
 }
