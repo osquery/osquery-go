@@ -37,6 +37,7 @@ type OsqueryPlugin interface {
 }
 
 const defaultTimeout = 1 * time.Second
+const defaultPingInterval = 5 * time.Second
 
 // ExtensionManagerServer is an implementation of the full ExtensionManager
 // API. Plugins can register with an extension manager, which handles the
@@ -49,6 +50,7 @@ type ExtensionManagerServer struct {
 	server       thrift.TServer
 	transport    thrift.TServerTransport
 	timeout      time.Duration
+	pingInterval time.Duration // How often to ping osquery server
 	mutex        sync.Mutex
 }
 
@@ -69,6 +71,12 @@ func ServerTimeout(timeout time.Duration) ServerOption {
 	}
 }
 
+func ServerPingInterval(interval time.Duration) ServerOption {
+	return func(s *ExtensionManagerServer) {
+		s.pingInterval = interval
+	}
+}
+
 // NewExtensionManagerServer creates a new extension management server
 // communicating with osquery over the socket at the provided path. If
 // resolving the address or connecting to the socket fails, this function will
@@ -81,10 +89,11 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 	}
 
 	manager := &ExtensionManagerServer{
-		name:     name,
-		sockPath: sockPath,
-		registry: registry,
-		timeout:  defaultTimeout,
+		name:         name,
+		sockPath:     sockPath,
+		registry:     registry,
+		timeout:      defaultTimeout,
+		pingInterval: defaultPingInterval,
 	}
 
 	for _, opt := range opts {
@@ -183,6 +192,23 @@ func (s *ExtensionManagerServer) Run() error {
 		signal.Notify(sig, os.Interrupt, os.Kill, syscall.SIGTERM)
 		<-sig
 		errc <- nil
+	}()
+
+	// Watch for the osquery process going away. If so, initiate shutdown.
+	go func() {
+		for {
+			time.Sleep(s.pingInterval)
+
+			status, err := s.serverClient.Ping()
+			if err != nil {
+				errc <- errors.Wrap(err, "extension ping failed")
+				break
+			}
+			if status.Code != 0 {
+				errc <- errors.Errorf("ping returned status %d", status.Code)
+				break
+			}
+		}
 	}()
 
 	err := <-errc
