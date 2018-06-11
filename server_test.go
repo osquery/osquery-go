@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -32,6 +33,9 @@ func TestNoDeadlockOnError(t *testing.T) {
 			defer mut.Unlock()
 			return nil, errors.New("boom!")
 		},
+		PingFunc: func() (*osquery.ExtensionStatus, error) {
+			return &osquery.ExtensionStatus{}, nil
+		},
 	}
 	server := &ExtensionManagerServer{
 		serverClient: mock,
@@ -45,10 +49,36 @@ func TestNoDeadlockOnError(t *testing.T) {
 	server.RegisterPlugin(logger.NewPlugin("testLogger", log))
 
 	err := server.Run()
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 	mut.Lock()
 	defer mut.Unlock()
 	assert.True(t, mock.RegisterExtensionFuncInvoked)
+}
+
+// Ensure that the extension server will shutdown and return if the osquery
+// instance it is talking to stops responding to pings.
+func TestShutdownWhenPingFails(t *testing.T) {
+	registry := make(map[string](map[string]OsqueryPlugin))
+	for reg, _ := range validRegistryNames {
+		registry[reg] = make(map[string]OsqueryPlugin)
+	}
+	mock := &MockExtensionManager{
+		RegisterExtensionFunc: func(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+			return &osquery.ExtensionStatus{}, nil
+		},
+		PingFunc: func() (*osquery.ExtensionStatus, error) {
+			// As if the socket was closed
+			return nil, syscall.EPIPE
+		},
+	}
+	server := &ExtensionManagerServer{
+		serverClient: mock,
+		registry:     registry,
+	}
+
+	err := server.Run()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "broken pipe")
 }
 
 // How many parallel tests to run (because sync issues do not occur on every
