@@ -268,6 +268,7 @@ func (s *ExtensionManagerServer) waitStarted() {
 		started := s.started
 		s.mutex.Unlock()
 		if started {
+			time.Sleep(10 * time.Millisecond)
 			break
 		}
 	}

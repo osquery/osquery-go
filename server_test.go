@@ -117,7 +117,6 @@ func testShutdownDeadlock(t *testing.T) {
 	}()
 	// Wait for server to be set up
 	server.waitStarted()
-	time.Sleep(10 * time.Millisecond)
 
 	// Create a raw client to access the shutdown method that is not
 	// usually exposed.
@@ -153,7 +152,7 @@ func testShutdownDeadlock(t *testing.T) {
 		close(completed)
 	}()
 
-	// Either indicate successful shutdown, or fatal the test because it
+	// either indicate successful shutdown, or fatal the test because it
 	// hung
 	select {
 	case <-completed:
