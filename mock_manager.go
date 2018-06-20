@@ -4,7 +4,7 @@ package osquery
 
 import "github.com/kolide/osquery-go/gen/osquery"
 
-var _ ExtensionManagerClientI = (*MockExtensionManager)(nil)
+var _ ExtensionManager = (*MockExtensionManager)(nil)
 
 type CloseFunc func()
 
