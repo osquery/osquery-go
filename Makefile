@@ -8,7 +8,7 @@ deps:
 
 gen: ./osquery.thrift
 	rm -rf ./gen
-	mkdir ./gen
+	mkdir -p ./gen ./gen/osquery/mock
 	thrift --gen go:package_prefix=github.com/kolide/osquery-go/gen/ -out ./gen ./osquery.thrift
 	rm -rf gen/osquery/extension-remote gen/osquery/extension_manager-remote
 	gofmt -w ./gen
@@ -35,5 +35,8 @@ example_config: examples/config/*.go
 
 test: all
 	go test -race -cover -v $(shell go list ./... | grep -v /vendor/)
+
+clean:
+	rm -rf ./build ./gen
 
 .PHONY: all
