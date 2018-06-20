@@ -7,8 +7,7 @@ deps:
 	dep ensure -vendor-only
 
 gen: ./osquery.thrift
-	rm -rf ./gen
-	mkdir -p ./gen ./gen/osquery/mock
+	mkdir ./gen
 	thrift --gen go:package_prefix=github.com/kolide/osquery-go/gen/ -out ./gen ./osquery.thrift
 	rm -rf gen/osquery/extension-remote gen/osquery/extension_manager-remote
 	gofmt -w ./gen

@@ -42,7 +42,7 @@ const defaultPingInterval = 5 * time.Second
 type ExtensionManagerServer struct {
 	name         string
 	sockPath     string
-	serverClient ExtensionManager
+	serverClient ExtensionManagerClientI
 	registry     map[string](map[string]OsqueryPlugin)
 	server       thrift.TServer
 	transport    thrift.TServerTransport

@@ -11,7 +11,7 @@ import (
 	"git.apache.org/thrift.git/lib/go/thrift"
 )
 
-type ExtensionManager interface {
+type ExtensionManagerClientI interface {
 	Close()
 	Ping() (*osquery.ExtensionStatus, error)
 	Call(registry, item string, req osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error)
