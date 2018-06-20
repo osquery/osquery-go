@@ -106,12 +106,17 @@ func testShutdownDeadlock(t *testing.T) {
 		},
 	}
 	server := ExtensionManagerServer{serverClient: mock, sockPath: tempPath.Name()}
+
+	wait := sync.WaitGroup{}
+
+	wait.Add(1)
 	go func() {
 		err := server.Start()
 		require.Nil(t, err)
+		wait.Done()
 	}()
-	// Sleep long enough for server to start listening on socket
-	time.Sleep(500 * time.Millisecond)
+	// Wait for server to be set up
+	server.waitStarted()
 
 	// Create a raw client to access the shutdown method that is not
 	// usually exposed.
@@ -127,7 +132,6 @@ func testShutdownDeadlock(t *testing.T) {
 
 	// Simultaneously call shutdown through a request from the client and
 	// directly on the server object.
-	wait := sync.WaitGroup{}
 	wait.Add(1)
 	go func() {
 		defer wait.Done()
@@ -147,6 +151,40 @@ func testShutdownDeadlock(t *testing.T) {
 		wait.Wait()
 		close(completed)
 	}()
+
+	// either indicate successful shutdown, or fatal the test because it
+	// hung
+	select {
+	case <-completed:
+		// Success. Do nothing.
+	case <-time.After(5 * time.Second):
+		t.Fatal("hung on shutdown")
+	}
+}
+
+func TestShutdownBasic(t *testing.T) {
+	tempPath, err := ioutil.TempFile("", "")
+	require.Nil(t, err)
+	defer os.Remove(tempPath.Name())
+
+	retUUID := osquery.ExtensionRouteUUID(0)
+	mock := &MockExtensionManager{
+		RegisterExtensionFunc: func(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+			return &osquery.ExtensionStatus{Code: 0, UUID: retUUID}, nil
+		},
+	}
+	server := ExtensionManagerServer{serverClient: mock, sockPath: tempPath.Name()}
+
+	completed := make(chan struct{})
+	go func() {
+		err := server.Start()
+		require.NoError(t, err)
+		close(completed)
+	}()
+
+	server.waitStarted()
+	err = server.Shutdown()
+	require.NoError(t, err)
 
 	// Either indicate successful shutdown, or fatal the test because it
 	// hung
