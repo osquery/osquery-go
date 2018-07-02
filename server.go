@@ -204,20 +204,20 @@ func (s *ExtensionManagerServer) Run() error {
 	}()
 
 	err := <-errc
-	if err := s.Shutdown(context.Background()); err != nil {
+	if err := s.Shutdown(); err != nil {
 		return err
 	}
 	return err
 }
 
 // Ping implements the basic health check.
-func (s *ExtensionManagerServer) Ping(ctx context.Context) (*osquery.ExtensionStatus, error) {
+func (s *ExtensionManagerServer) Ping() (*osquery.ExtensionStatus, error) {
 	return &osquery.ExtensionStatus{Code: 0, Message: "OK"}, nil
 }
 
 // Call routes a call from the osquery process to the appropriate registered
 // plugin.
-func (s *ExtensionManagerServer) Call(ctx context.Context, registry string, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
+func (s *ExtensionManagerServer) Call(registry string, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
 	subreg, ok := s.registry[registry]
 	if !ok {
 		return &osquery.ExtensionResponse{
@@ -243,7 +243,7 @@ func (s *ExtensionManagerServer) Call(ctx context.Context, registry string, item
 }
 
 // Shutdown stops the server and closes the listening socket.
-func (s *ExtensionManagerServer) Shutdown(ctx context.Context) error {
+func (s *ExtensionManagerServer) Shutdown() error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	if s.server != nil {
