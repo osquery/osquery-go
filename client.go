@@ -1,7 +1,6 @@
 package osquery
 
 import (
-	"context"
 	"time"
 
 	"github.com/kolide/osquery-go/gen/osquery"
@@ -55,34 +54,34 @@ func (c *ExtensionManagerClient) Close() {
 
 // Ping requests metadata from the extension manager.
 func (c *ExtensionManagerClient) Ping() (*osquery.ExtensionStatus, error) {
-	return c.Client.Ping(context.Background())
+	return c.Client.Ping()
 }
 
 // Call requests a call to an extension (or core) registry plugin.
 func (c *ExtensionManagerClient) Call(registry, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
-	return c.Client.Call(context.Background(), registry, item, request)
+	return c.Client.Call(registry, item, request)
 }
 
 // Extensions requests the list of active registered extensions.
 func (c *ExtensionManagerClient) Extensions() (osquery.InternalExtensionList, error) {
-	return c.Client.Extensions(context.Background())
+	return c.Client.Extensions()
 }
 
 // RegisterExtension registers the extension plugins with the osquery process.
 func (c *ExtensionManagerClient) RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
-	return c.Client.RegisterExtension(context.Background(), info, registry)
+	return c.Client.RegisterExtension(info, registry)
 }
 
 // Options requests the list of bootstrap or configuration options.
 func (c *ExtensionManagerClient) Options() (osquery.InternalOptionList, error) {
-	return c.Client.Options(context.Background())
+	return c.Client.Options()
 }
 
 // Query requests a query to be run and returns the extension response.
 // Consider using the QueryRow or QueryRows helpers for a more friendly
 // interface.
 func (c *ExtensionManagerClient) Query(sql string) (*osquery.ExtensionResponse, error) {
-	return c.Client.Query(context.Background(), sql)
+	return c.Client.Query(sql)
 }
 
 // QueryRows is a helper that executes the requested query and returns the
@@ -118,5 +117,5 @@ func (c *ExtensionManagerClient) QueryRow(sql string) (map[string]string, error)
 
 // GetQueryColumns requests the columns returned by the parsed query.
 func (c *ExtensionManagerClient) GetQueryColumns(sql string) (*osquery.ExtensionResponse, error) {
-	return c.Client.GetQueryColumns(context.Background(), sql)
+	return c.Client.GetQueryColumns(sql)
 }

@@ -4,8 +4,7 @@
 [[projects]]
   name = "git.apache.org/thrift.git"
   packages = ["lib/go/thrift"]
-  revision = "327ebb6c2b6df8bf075da02ef45a2a034e9b79ba"
-  version = "0.11.0"
+  revision = "0dd823580c78a79ae9696eb9b3650e400fff140f"
 
 [[projects]]
   name = "github.com/Microsoft/go-winio"
@@ -33,18 +32,9 @@
 
 [[projects]]
   name = "github.com/stretchr/testify"
-  packages = [
-    "assert",
-    "require"
-  ]
+  packages = ["assert","require"]
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
   version = "v1.1.4"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/net"
-  packages = ["context"]
-  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
 
 [[projects]]
   branch = "master"
@@ -55,6 +45,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "94aae89977b59e0e153d6d83eefbfbfe67c6bb765813b75fc1be00c64ab4d1b1"
+  inputs-digest = "789df63dd9cc38795d3f7628e73fd226a6ecd621bbd0181337ece8ecb7ae6fa8"
   solver-name = "gps-cdcl"
   solver-version = 1

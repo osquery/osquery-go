@@ -1,12 +1,11 @@
 package osquery
 
 import (
-	"context"
 	"errors"
 	"testing"
 
 	"github.com/kolide/osquery-go/gen/osquery"
-	"github.com/kolide/osquery-go/mock"
+	"github.com/kolide/osquery-go/gen/osquery/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +14,7 @@ func TestQueryRows(t *testing.T) {
 	client := &ExtensionManagerClient{Client: mock}
 
 	// Transport related error
-	mock.QueryFunc = func(ctx context.Context, sql string) (*osquery.ExtensionResponse, error) {
+	mock.QueryFunc = func(sql string) (*osquery.ExtensionResponse, error) {
 		return nil, errors.New("boom!")
 	}
 	rows, err := client.QueryRows("select 1")
@@ -24,7 +23,7 @@ func TestQueryRows(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// Nil status
-	mock.QueryFunc = func(ctx context.Context, sql string) (*osquery.ExtensionResponse, error) {
+	mock.QueryFunc = func(sql string) (*osquery.ExtensionResponse, error) {
 		return &osquery.ExtensionResponse{}, nil
 	}
 	rows, err = client.QueryRows("select 1")
@@ -33,7 +32,7 @@ func TestQueryRows(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// Query error
-	mock.QueryFunc = func(ctx context.Context, sql string) (*osquery.ExtensionResponse, error) {
+	mock.QueryFunc = func(sql string) (*osquery.ExtensionResponse, error) {
 		return &osquery.ExtensionResponse{
 			Status: &osquery.ExtensionStatus{Code: 1, Message: "bad query"},
 		}, nil
@@ -47,7 +46,7 @@ func TestQueryRows(t *testing.T) {
 	expectedRows := []map[string]string{
 		{"1": "1"},
 	}
-	mock.QueryFunc = func(ctx context.Context, sql string) (*osquery.ExtensionResponse, error) {
+	mock.QueryFunc = func(sql string) (*osquery.ExtensionResponse, error) {
 		return &osquery.ExtensionResponse{
 			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
 			Response: expectedRows,
@@ -65,7 +64,7 @@ func TestQueryRows(t *testing.T) {
 		{"1": "1"},
 		{"1": "2"},
 	}
-	mock.QueryFunc = func(ctx context.Context, sql string) (*osquery.ExtensionResponse, error) {
+	mock.QueryFunc = func(sql string) (*osquery.ExtensionResponse, error) {
 		return &osquery.ExtensionResponse{
 			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
 			Response: expectedRows,
