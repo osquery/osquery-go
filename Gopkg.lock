@@ -4,8 +4,7 @@
 [[projects]]
   name = "git.apache.org/thrift.git"
   packages = ["lib/go/thrift"]
-  revision = "327ebb6c2b6df8bf075da02ef45a2a034e9b79ba"
-  version = "0.11.0"
+  revision = "f12cacf56145e2c8f0d4429694fedf5453648089"
 
 [[projects]]
   name = "github.com/Microsoft/go-winio"
@@ -42,12 +41,6 @@
 
 [[projects]]
   branch = "master"
-  name = "golang.org/x/net"
-  packages = ["context"]
-  revision = "c39426892332e1bb5ec0a434a079bf82f5d30c54"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/sys"
   packages = ["windows"]
   revision = "14742f9018cd6651ec7364dc6ee08af0baaa1031"
@@ -55,6 +48,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "36f22e0ee2748e2c169ada78406f3bb761eb15dc390cf135054a7cf5941e6d23"
+  inputs-digest = "21dd3bbf9b3aa8841c78464a4e9635fde9973ab6e4419cc6e1a6152f66bd8e76"
   solver-name = "gps-cdcl"
   solver-version = 1
