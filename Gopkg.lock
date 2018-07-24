@@ -2,49 +2,72 @@
 
 
 [[projects]]
+  digest = "1:5dc680b877134f871d6fb910c096b250c520ec25194b07cdc50d7fd985fe50ce"
   name = "git.apache.org/thrift.git"
   packages = ["lib/go/thrift"]
+  pruneopts = ""
   revision = "0dd823580c78a79ae9696eb9b3650e400fff140f"
 
 [[projects]]
+  digest = "1:ec6a42cd98d70f0916216d8f6df8ca61145edeaad041014aa9c003068de7364c"
   name = "github.com/Microsoft/go-winio"
   packages = ["."]
-  revision = "78439966b38d69bf38227fbf57ac8a6fee70f69a"
-  version = "v0.4.5"
+  pruneopts = ""
+  revision = "a6d595ae73cf27a1b8fc32930668708f45ce1c85"
+  version = "v0.4.9"
 
 [[projects]]
+  digest = "1:0a39ec8bf5629610a4bc7873a92039ee509246da3cef1a0ea60f1ed7e5f9cea5"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
+  pruneopts = ""
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
   version = "v1.1.0"
 
 [[projects]]
+  digest = "1:7365acd48986e205ccb8652cc746f09c8b7876030d53710ea6ef7d0bd0dcd7ca"
   name = "github.com/pkg/errors"
   packages = ["."]
+  pruneopts = ""
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:256484dbbcd271f9ecebc6795b2df8cad4c458dd0f5fd82a8c2fa0c29f233411"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
+  pruneopts = ""
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:8e7d1910593db3b38b0c3e4bf3f82bc041dfddfed5f6d36a47f3ad7e72710d8d"
   name = "github.com/stretchr/testify"
-  packages = ["assert","require"]
+  packages = [
+    "assert",
+    "require",
+  ]
+  pruneopts = ""
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
   version = "v1.1.4"
 
 [[projects]]
   branch = "master"
+  digest = "1:d54cd766e4cf522621ef0a33d76d5b74218cda056726e971fe9c3a3e28586425"
   name = "golang.org/x/sys"
   packages = ["windows"]
+  pruneopts = ""
   revision = "8dbc5d05d6edcc104950cc299a1ce6641235bc86"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "789df63dd9cc38795d3f7628e73fd226a6ecd621bbd0181337ece8ecb7ae6fa8"
+  input-imports = [
+    "git.apache.org/thrift.git/lib/go/thrift",
+    "github.com/Microsoft/go-winio",
+    "github.com/pkg/errors",
+    "github.com/stretchr/testify/assert",
+    "github.com/stretchr/testify/require",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
