@@ -135,13 +135,13 @@ func testShutdownDeadlock(t *testing.T) {
 	wait.Add(1)
 	go func() {
 		defer wait.Done()
-		client.Shutdown()
+		client.Shutdown(context.Background())
 	}()
 
 	wait.Add(1)
 	go func() {
 		defer wait.Done()
-		err = server.Shutdown()
+		err = server.Shutdown(context.Background())
 		require.Nil(t, err)
 	}()
 
@@ -183,7 +183,7 @@ func TestShutdownBasic(t *testing.T) {
 	}()
 
 	server.waitStarted()
-	err = server.Shutdown()
+	err = server.Shutdown(context.Background())
 	require.NoError(t, err)
 
 	// Either indicate successful shutdown, or fatal the test because it
