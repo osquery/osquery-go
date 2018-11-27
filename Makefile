@@ -1,10 +1,17 @@
 PATH := $(GOPATH)/bin:$(PATH)
+export GO111MODULE=on
 
 all: gen examples
 
-deps:
-	go get -u github.com/golang/dep/cmd/dep
-	dep ensure -vendor-only
+go-mod-check:
+	@go help mod > /dev/null || (echo "Your go is too old, no modules. Seek help." && exit 1)
+
+go-mod-download:
+	go mod download
+
+deps-go: go-mod-check go-mod-download
+
+deps: deps-go
 
 gen: ./osquery.thrift
 	mkdir ./gen
@@ -33,7 +40,7 @@ example_config: examples/config/*.go
 	go build -o example_config ./examples/config/*.go
 
 test: all
-	go test -race -cover -v $(shell go list ./... | grep -v /vendor/)
+	go test -race -cover ./...
 
 clean:
 	rm -rf ./build ./gen
