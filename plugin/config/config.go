@@ -24,7 +24,7 @@ type Plugin struct {
 
 // NewConfigPlugin takes a value that implements ConfigPlugin and wraps it with
 // the appropriate methods to satisfy the OsqueryPlugin interface. Use this to
-// easily create plugins implementing osquery tables.
+// easily create configuration plugins.
 func NewPlugin(name string, fn GenerateConfigsFunc) *Plugin {
 	return &Plugin{name: name, generate: fn}
 }

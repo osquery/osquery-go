@@ -28,7 +28,7 @@ type Plugin struct {
 
 // NewPlugin takes a value that implements LoggerPlugin and wraps it with
 // the appropriate methods to satisfy the OsqueryPlugin interface. Use this to
-// easily create plugins implementing osquery tables.
+// easily create plugins implementing osquery loggers.
 func NewPlugin(name string, fn LogFunc) *Plugin {
 	return &Plugin{name: name, logFn: fn}
 }
