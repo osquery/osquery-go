@@ -130,7 +130,7 @@ Using the instructions found on the [wiki](https://osquery.readthedocs.io/en/lat
 
 ### Creating logger and config plugins
 
-The process required to create a config and/or logger plugin is very similar to the process outlined above for creating an osquery table. Specifically, you would create an `ExtensionManagerServer` instance in `func main()`, register your plugin and launch the extension as described above. The only difference is that the implementation of your plugin would be different. Each plugin package has a `NewPlugin` function which takes the plugin name as the first argument, followed by a list of reguired arguments to implement the plugin. 
+The process required to create a config and/or logger plugin is very similar to the process outlined above for creating an osquery table. Specifically, you would create an `ExtensionManagerServer` instance in `func main()`, register your plugin and launch the extension as described above. The only difference is that the implementation of your plugin would be different. Each plugin package has a `NewPlugin` function which takes the plugin name as the first argument, followed by a list of required arguments to implement the plugin. 
 For example, consider the implementation of an example logger plugin:
 
 ```go
