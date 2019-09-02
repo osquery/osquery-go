@@ -8,7 +8,7 @@ import (
 	"github.com/Microsoft/go-winio"
 	"github.com/pkg/errors"
 
-	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/apache/thrift/lib/go/thrift"
 )
 
 // Open opens the named pipe with the provided path and timeout,

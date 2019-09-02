@@ -10,7 +10,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/apache/thrift/lib/go/thrift"
 )
 
 // (needed to ensure safety because of naive import list construction.)
