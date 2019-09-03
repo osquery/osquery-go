@@ -1,5 +1,3 @@
-git.apache.org/thrift.git v0.0.0-20180705132951-f12cacf56145 h1:eqkP2n4Uh6y/Jjzu2X3SxCTWs9IlDqynVJAx6XS0nyo=
-git.apache.org/thrift.git v0.0.0-20180705132951-f12cacf56145/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
 github.com/Microsoft/go-winio v0.4.9 h1:3RbgqgGVqmcpbOiwrjbVtDHLlJBGF6aE+yHmNtBNsFQ=
 github.com/Microsoft/go-winio v0.4.9/go.mod h1:VhR8bwka0BXejwEJY73c50VrPtXAaKcyvVC4A4RozmA=
 github.com/apache/thrift v0.12.0 h1:pODnxUFNcjP9UTLZGTdeh+j16A8lJbRvD3rOtrk/7bs=
