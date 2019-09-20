@@ -14,7 +14,7 @@ deps-go: go-mod-check go-mod-download
 deps: deps-go
 
 gen: ./osquery.thrift
-	mkdir ./gen
+	mkdir -p ./gen
 	thrift --gen go:package_prefix=github.com/kolide/osquery-go/gen/ -out ./gen ./osquery.thrift
 	rm -rf gen/osquery/extension-remote gen/osquery/extension_manager-remote
 	gofmt -w ./gen
