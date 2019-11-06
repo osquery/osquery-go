@@ -121,12 +121,12 @@ type ColumnOptions uint8
 
 // From https://github.com/osquery/osquery/blob/master/osquery/core/sql/column.h#L37
 const (
-	ColumnOptionDefault ColumnOptions = 0
-	ColumnOptionIndex   ColumnOptions = 1 << iota
-	ColumnOptionRequired
-	ColumnOptionAdditional
-	ColumnOptionOptimized
-	ColumnOptionHidden
+	ColumnOptionDefault    ColumnOptions = 0
+	ColumnOptionIndex                    = 1
+	ColumnOptionRequired                 = 2
+	ColumnOptionAdditional               = 4
+	ColumnOptionOptimized                = 8
+	ColumnOptionHidden                   = 16
 )
 
 // ColumnDefinition defines the relevant information for a column in a table
