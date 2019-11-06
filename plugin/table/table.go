@@ -45,7 +45,7 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 			"id":   "column",
 			"name": col.Name,
 			"type": string(col.Type),
-			"op":   "0",
+			"op":   strconv.FormatUint(uint64(col.Options), 10),
 		})
 	}
 	return routes
@@ -103,47 +103,6 @@ func (t *Plugin) Ping() osquery.ExtensionStatus {
 
 func (t *Plugin) Shutdown() {}
 
-// ColumnDefinition defines the relevant information for a column in a table
-// plugin. Both values are mandatory. Prefer using the *Column helpers to
-// create ColumnDefinition structs.
-type ColumnDefinition struct {
-	Name string
-	Type ColumnType
-}
-
-// TextColumn is a helper for defining columns containing strings.
-func TextColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeText,
-	}
-}
-
-// IntegerColumn is a helper for defining columns containing integers.
-func IntegerColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeInteger,
-	}
-}
-
-// BigIntColumn is a helper for defining columns containing big integers.
-func BigIntColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeBigInt,
-	}
-}
-
-// DoubleColumn is a helper for defining columns containing floating point
-// values.
-func DoubleColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeDouble,
-	}
-}
-
 // ColumnType is a strongly typed representation of the data type string for a
 // column definition. The named constants should be used.
 type ColumnType string
@@ -155,6 +114,85 @@ const (
 	ColumnTypeBigInt             = "BIGINT"
 	ColumnTypeDouble             = "DOUBLE"
 )
+
+// ColumnOption are the osquery column options. These are defined by
+// https://github.com/osquery/osquery/blob/master/osquery/core/sql/column.h#L37
+type ColumnOptions uint8
+
+// From https://github.com/osquery/osquery/blob/master/osquery/core/sql/column.h#L37
+const (
+	ColumnOptionDefault ColumnOptions = 0
+	ColumnOptionIndex   ColumnOptions = 1 << iota
+	ColumnOptionRequired
+	ColumnOptionAdditional
+	ColumnOptionOptimized
+	ColumnOptionHidden
+)
+
+// ColumnDefinition defines the relevant information for a column in a table
+// plugin. Both values are mandatory. Prefer using the *Column helpers to
+// create ColumnDefinition structs.
+type ColumnDefinition struct {
+	Name        string
+	Type        ColumnType
+	Options     ColumnOptions // bitmask. See https://github.com/osquery/osquery/blob/master/osquery/core/sql/column.h#L37
+	Description string
+}
+
+func newColumn(name string, ctype ColumnType, opts ...ColumnOpt) ColumnDefinition {
+	cd := ColumnDefinition{
+		Name: name,
+		Type: ctype,
+	}
+
+	for _, opt := range opts {
+		opt(&cd)
+	}
+
+	return cd
+
+}
+
+// TextColumn is a helper for defining columns containing strings.
+func TextColumn(name string, opts ...ColumnOpt) ColumnDefinition {
+	return newColumn(name, ColumnTypeText, opts...)
+}
+
+// IntegerColumn is a helper for defining columns containing integers.
+func IntegerColumn(name string, opts ...ColumnOpt) ColumnDefinition {
+	return newColumn(name, ColumnTypeInteger, opts...)
+}
+
+// BigIntColumn is a helper for defining columns containing big integers.
+func BigIntColumn(name string, opts ...ColumnOpt) ColumnDefinition {
+	return newColumn(name, ColumnTypeBigInt, opts...)
+}
+
+// DoubleColumn is a helper for defining columns containing floating point
+// values.
+func DoubleColumn(name string, opts ...ColumnOpt) ColumnDefinition {
+	return newColumn(name, ColumnTypeDouble, opts...)
+}
+
+func IndexColumn() ColumnOpt      { return SetColumnOption(ColumnOptionIndex) }
+func RequiredColumn() ColumnOpt   { return SetColumnOption(ColumnOptionRequired) }
+func AdditionalColumn() ColumnOpt { return SetColumnOption(ColumnOptionAdditional) }
+func OptimizedColumn() ColumnOpt  { return SetColumnOption(ColumnOptionOptimized) }
+func HiddenColumn() ColumnOpt     { return SetColumnOption(ColumnOptionHidden) }
+
+func SetColumnOption(flag ColumnOptions) ColumnOpt {
+	return func(cd *ColumnDefinition) {
+		cd.Options = cd.Options | flag
+	}
+}
+
+func ColumnDescription(d string) ColumnOpt {
+	return func(cd *ColumnDefinition) {
+		cd.Description = d
+	}
+}
+
+type ColumnOpt func(*ColumnDefinition)
 
 // QueryContext contains the constraints from the WHERE clause of the query,
 // that can optionally be used to optimize the table generation. Note that the
