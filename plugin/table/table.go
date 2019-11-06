@@ -103,46 +103,23 @@ func (t *Plugin) Ping() osquery.ExtensionStatus {
 
 func (t *Plugin) Shutdown() {}
 
-// ColumnType is a strongly typed representation of the data type string for a
-// column definition. The named constants should be used.
-type ColumnType string
-
-// The following column types are defined in osquery tables.h.
-const (
-	ColumnTypeText    ColumnType = "TEXT"
-	ColumnTypeInteger            = "INTEGER"
-	ColumnTypeBigInt             = "BIGINT"
-	ColumnTypeDouble             = "DOUBLE"
-)
-
-// ColumnOption are the osquery column options. These are defined by
-// https://github.com/osquery/osquery/blob/master/osquery/core/sql/column.h#L37
-type ColumnOptions uint8
-
-// From https://github.com/osquery/osquery/blob/master/osquery/core/sql/column.h#L37
-const (
-	ColumnOptionDefault    ColumnOptions = 0
-	ColumnOptionIndex                    = 1
-	ColumnOptionRequired                 = 2
-	ColumnOptionAdditional               = 4
-	ColumnOptionOptimized                = 8
-	ColumnOptionHidden                   = 16
-)
-
 // ColumnDefinition defines the relevant information for a column in a table
 // plugin. Both values are mandatory. Prefer using the *Column helpers to
 // create ColumnDefinition structs.
 type ColumnDefinition struct {
 	Name        string
 	Type        ColumnType
-	Options     ColumnOptions // bitmask. See https://github.com/osquery/osquery/blob/master/osquery/core/sql/column.h#L37
+	Options     columnOptions // bitmask
 	Description string
 }
 
-func newColumn(name string, ctype ColumnType, opts ...ColumnOpt) ColumnDefinition {
+// NewColumn returns a ColumnDefinition for the specified column. It
+// defaults to a TEXT column, and accepts functional args to change
+// settings.
+func NewColumn(name string, opts ...ColumnOpt) ColumnDefinition {
 	cd := ColumnDefinition{
 		Name: name,
-		Type: ctype,
+		Type: ColumnTypeText, // Default to TEXT, and not UNKNOWN
 	}
 
 	for _, opt := range opts {
@@ -153,39 +130,115 @@ func newColumn(name string, ctype ColumnType, opts ...ColumnOpt) ColumnDefinitio
 
 }
 
-// TextColumn is a helper for defining columns containing strings.
+// ColumnType is a strongly typed representation of the data type string for a
+// column definition. The named constants should be used.
+type ColumnType string
+
+// The following column types are defined in osquery tables.h and column.cpp
+const (
+	ColumnTypeUnknown        ColumnType = "UNKNOWN"
+	ColumnTypeText                      = "TEXT"
+	ColumnTypeInteger                   = "INTEGER"
+	ColumnTypeBigInt                    = "BIGINT"
+	ColumnTypeUnsignedBigInt            = "UNSIGNED BIGINT"
+	ColumnTypeDouble                    = "DOUBLE"
+	ColumnTypeBlob                      = "BLOB"
+)
+
+// TextColumn is a DEPRECATED helper for defining columns containing strings.
 func TextColumn(name string, opts ...ColumnOpt) ColumnDefinition {
-	return newColumn(name, ColumnTypeText, opts...)
+	return NewColumn(name, append(opts, IsText())...)
 }
 
-// IntegerColumn is a helper for defining columns containing integers.
+// IntegerColumn is a DEPRECATED helper for defining columns containing integers.
 func IntegerColumn(name string, opts ...ColumnOpt) ColumnDefinition {
-	return newColumn(name, ColumnTypeInteger, opts...)
+	return NewColumn(name, append(opts, IsInteger())...)
 }
 
-// BigIntColumn is a helper for defining columns containing big integers.
+// BigIntColumn is a DEPRECATED helper for defining columns containing big integers.
 func BigIntColumn(name string, opts ...ColumnOpt) ColumnDefinition {
-	return newColumn(name, ColumnTypeBigInt, opts...)
+	return NewColumn(name, append(opts, IsBigInt())...)
 }
 
-// DoubleColumn is a helper for defining columns containing floating point
+// DoubleColumn is a DEPRECATED helper for defining columns containing floating point
 // values.
 func DoubleColumn(name string, opts ...ColumnOpt) ColumnDefinition {
-	return newColumn(name, ColumnTypeDouble, opts...)
+	return NewColumn(name, append(opts, IsDouble())...)
 }
 
-func IndexColumn() ColumnOpt      { return SetColumnOption(ColumnOptionIndex) }
-func RequiredColumn() ColumnOpt   { return SetColumnOption(ColumnOptionRequired) }
-func AdditionalColumn() ColumnOpt { return SetColumnOption(ColumnOptionAdditional) }
-func OptimizedColumn() ColumnOpt  { return SetColumnOption(ColumnOptionOptimized) }
-func HiddenColumn() ColumnOpt     { return SetColumnOption(ColumnOptionHidden) }
+// setColumnType is an internal function to set column type
+func setColumnType(ctype ColumnType) ColumnOpt {
+	return func(cd *ColumnDefinition) {
+		cd.Type = ctype
+	}
+}
 
-func SetColumnOption(flag ColumnOptions) ColumnOpt {
+// IsUnknown is a functional argument that defines this as an unknown column
+func IsUnknown() ColumnOpt { return setColumnType(ColumnTypeUnknown) }
+
+// IsText is a functional argument that defines this as a text column
+func IsText() ColumnOpt { return setColumnType(ColumnTypeText) }
+
+// IsInteger is a functional argument that defines this as a text column
+func IsInteger() ColumnOpt { return setColumnType(ColumnTypeInteger) }
+
+// IseBigInt is a functional argument that defines this as a text column
+func IsBigInt() ColumnOpt { return setColumnType(ColumnTypeBigInt) }
+
+// IsUnsignedBigInt is a functional argument that defines this as a text column
+func IsUnsignedBigInt() ColumnOpt { return setColumnType(ColumnTypeUnsignedBigInt) }
+
+// IsDouble is a functional argument that defines this as a text column
+func IsDouble() ColumnOpt { return setColumnType(ColumnTypeDouble) }
+
+// IsTypeBlob is a functional argument that defines this as a text column
+func IsTypeBlob() ColumnOpt { return setColumnType(ColumnTypeBlob) }
+
+// ColumnOption are the osquery column options. These are represented by a bitmask
+type columnOptions uint8
+
+// From https://github.com/osquery/osquery/blob/master/osquery/core/sql/column.h#L37
+const (
+	columnOptionDefault    columnOptions = 0
+	columnOptionIndex                    = 1
+	columnOptionRequired                 = 2
+	columnOptionAdditional               = 4
+	columnOptionOptimized                = 8
+	columnOptionHidden                   = 16
+)
+
+// setColumnOption is an internal function that applies the column options.
+func setColumnOption(flag columnOptions) ColumnOpt {
 	return func(cd *ColumnDefinition) {
 		cd.Options = cd.Options | flag
 	}
 }
 
+// IndexColumn is a functional argument to declare this as an indexed
+// column. Depending on impmelentation, this can significantly change
+// performance.  See osquery source code for more information.
+func IndexColumn() ColumnOpt { return setColumnOption(columnOptionIndex) }
+
+// RequiredColumn is a functional argument that sets this as a
+// required column. sqlite will not process queries, if a required
+// column is missing. See osquery source code for more information.
+func RequiredColumn() ColumnOpt { return setColumnOption(columnOptionRequired) }
+
+// AdditionalColumn is a functional argument that sets this as an
+// additional column. See osquery source code for more information.
+func AdditionalColumn() ColumnOpt { return setColumnOption(columnOptionAdditional) }
+
+// OptimizedColumn is a functional argument that sets this as an
+// optimized column. See osquery source code for more information.
+func OptimizedColumn() ColumnOpt { return setColumnOption(columnOptionOptimized) }
+
+// HiddenColumn is a functional argument that sets this as an
+// hidden column. This omits it from `select *` queries. See osquery source code for more information.
+func HiddenColumn() ColumnOpt { return setColumnOption(columnOptionHidden) }
+
+// ColumnDescription sets the column description. This is not
+// currently part of the underlying osquery api, it is here for human
+// consumption. It may become part of osquery spec generation.
 func ColumnDescription(d string) ColumnOpt {
 	return func(cd *ColumnDefinition) {
 		cd.Description = d
