@@ -103,59 +103,6 @@ func (t *Plugin) Ping() osquery.ExtensionStatus {
 
 func (t *Plugin) Shutdown() {}
 
-// ColumnDefinition defines the relevant information for a column in a table
-// plugin. Both values are mandatory. Prefer using the *Column helpers to
-// create ColumnDefinition structs.
-type ColumnDefinition struct {
-	Name string
-	Type ColumnType
-}
-
-// TextColumn is a helper for defining columns containing strings.
-func TextColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeText,
-	}
-}
-
-// IntegerColumn is a helper for defining columns containing integers.
-func IntegerColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeInteger,
-	}
-}
-
-// BigIntColumn is a helper for defining columns containing big integers.
-func BigIntColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeBigInt,
-	}
-}
-
-// DoubleColumn is a helper for defining columns containing floating point
-// values.
-func DoubleColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeDouble,
-	}
-}
-
-// ColumnType is a strongly typed representation of the data type string for a
-// column definition. The named constants should be used.
-type ColumnType string
-
-// The following column types are defined in osquery tables.h.
-const (
-	ColumnTypeText    ColumnType = "TEXT"
-	ColumnTypeInteger            = "INTEGER"
-	ColumnTypeBigInt             = "BIGINT"
-	ColumnTypeDouble             = "DOUBLE"
-)
-
 // QueryContext contains the constraints from the WHERE clause of the query,
 // that can optionally be used to optimize the table generation. Note that the
 // osquery SQLite engine will perform the filtering with these constraints, so
