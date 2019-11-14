@@ -45,7 +45,7 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 			"id":   "column",
 			"name": col.Name,
 			"type": string(col.Type),
-			"op":   "0",
+			"op":   strconv.FormatUint(uint64(col.Options()), 10),
 		})
 	}
 	return routes
