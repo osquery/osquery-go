@@ -2,28 +2,41 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"flag"
 	"log"
-	"os"
+	"time"
 
 	"github.com/kolide/osquery-go"
 	"github.com/kolide/osquery-go/plugin/config"
 )
 
+var (
+	socket   = flag.String("socket", "", "Path to the extensions UNIX domain socket")
+	timeout  = flag.Int("timeout", 3, "Seconds to wait for autoloaded extensions")
+	interval = flag.Int("interval", 3, "Seconds delay between connectivity checks")
+)
+
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Printf(`Usage: %s SOCKET_PATH\n
+	flag.Parse()
 
-Registers an example config plugin.
-
-Test with an invocation like:
-
-sudo ./example_call /var/osquery/osquery.em config example_config genConfig
-`, os.Args[0])
-		os.Exit(1)
+	if *socket == "" {
+		log.Fatalln("Missing required --socket argument")
 	}
 
-	server, err := osquery.NewExtensionManagerServer("example_extension", os.Args[1])
+	serverTimeout := osquery.ServerTimeout(
+		time.Second * time.Duration(*timeout),
+	)
+	serverPingInterval := osquery.ServerPingInterval(
+		time.Second * time.Duration(*interval),
+	)
+
+	server, err := osquery.NewExtensionManagerServer(
+		"example_extension",
+		*socket,
+		serverTimeout,
+		serverPingInterval,
+	)
+
 	if err != nil {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}

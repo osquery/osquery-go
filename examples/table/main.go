@@ -2,27 +2,39 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"flag"
 	"log"
-	"os"
+	"time"
 
 	"github.com/kolide/osquery-go"
 	"github.com/kolide/osquery-go/plugin/table"
 )
 
+var (
+	socket   = flag.String("socket", "", "Path to the extensions UNIX domain socket")
+	timeout  = flag.Int("timeout", 3, "Seconds to wait for autoloaded extensions")
+	interval = flag.Int("interval", 3, "Seconds delay between connectivity checks")
+)
+
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Printf(`Usage: %s SOCKET_PATH\n
-
-Registers an example table extension.
-
-This extension provides the "example_table" table. Try 'SELECT * FROM
-example_table' in the osquery process the extension attaches to.
-`, os.Args[0])
-		os.Exit(1)
+	flag.Parse()
+	if *socket == "" {
+		log.Fatalln("Missing required --socket argument")
 	}
+	serverTimeout := osquery.ServerTimeout(
+		time.Second * time.Duration(*timeout),
+	)
+	serverPingInterval := osquery.ServerPingInterval(
+		time.Second * time.Duration(*interval),
+	)
 
-	server, err := osquery.NewExtensionManagerServer("example_extension", os.Args[1])
+	server, err := osquery.NewExtensionManagerServer(
+		"example_extension",
+		*socket,
+		serverTimeout,
+		serverPingInterval,
+	)
+
 	if err != nil {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}
