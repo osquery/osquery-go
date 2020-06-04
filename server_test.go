@@ -124,7 +124,7 @@ func testShutdownDeadlock(t *testing.T) {
 	addr, err := net.ResolveUnixAddr("unix", listenPath)
 	require.Nil(t, err)
 	timeout := 500 * time.Millisecond
-	trans := thrift.NewTSocketFromAddrTimeout(addr, timeout)
+	trans := thrift.NewTSocketFromAddrTimeout(addr, timeout, timeout)
 	err = trans.Open()
 	require.Nil(t, err)
 	client := osquery.NewExtensionManagerClientFactory(trans,

@@ -28,7 +28,7 @@ func Open(sockPath string, timeout time.Duration) (*thrift.TSocket, error) {
 		return nil, errors.Wrapf(err, "waiting for unix socket to be available: %s", sockPath)
 	}
 
-	trans := thrift.NewTSocketFromAddrTimeout(addr, timeout)
+	trans := thrift.NewTSocketFromAddrTimeout(addr, timeout, timeout)
 	if err := trans.Open(); err != nil {
 		return nil, errors.Wrap(err, "opening socket transport")
 	}
