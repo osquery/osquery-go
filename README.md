@@ -38,17 +38,20 @@ import (
 	"context"
 	"log"
 	"os"
+	"flag"
 
 	"github.com/kolide/osquery-go"
 	"github.com/kolide/osquery-go/plugin/table"
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		log.Fatalf(`Usage: %s SOCKET_PATH`, os.Args[0])
+	socket := flag.String("socket", "", "Path to osquery socket file")
+	flag.Parse()
+	if *socket == "" {
+		log.Fatalf(`Usage: %s --socket SOCKET_PATH`, os.Args[0])
 	}
 
-	server, err := osquery.NewExtensionManagerServer("foobar", os.Args[1])
+	server, err := osquery.NewExtensionManagerServer("foobar", *socket)
 	if err != nil {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}
@@ -88,7 +91,7 @@ func FoobarGenerate(ctx context.Context, queryContext table.QueryContext) ([]map
 
 To test this code, start an osquery shell and find the path of the osquery extension socket:
 
-```
+```sql
 osqueryi --nodisable_extensions
 osquery> select value from osquery_flags where name = 'extensions_socket';
 +-----------------------------------+
@@ -100,20 +103,20 @@ osquery> select value from osquery_flags where name = 'extensions_socket';
 
 Then start the Go extension and have it communicate with osqueryi via the extension socket that you retrieved above:
 
-```
-go run ./my_table_plugin.go /Users/USERNAME/.osquery/shell.em
+```bash
+go run ./my_table_plugin.go --socket /Users/USERNAME/.osquery/shell.em
 ```
 
 Alternatively, you can also autoload your extension when starting an osquery shell:
 
-```
+```bash
 go build -o my_table_plugin my_table_plugin.go
 osqueryi --extension /path/to/my_table_plugin
 ```
 
 This will register a table called "foobar". As you can see, the table will return two rows:
 
-```
+```sql
 osquery> select * from foobar;
 +-----+-----+
 | foo | baz |
@@ -130,7 +133,7 @@ Using the instructions found on the [wiki](https://osquery.readthedocs.io/en/lat
 
 ### Creating logger and config plugins
 
-The process required to create a config and/or logger plugin is very similar to the process outlined above for creating an osquery table. Specifically, you would create an `ExtensionManagerServer` instance in `func main()`, register your plugin and launch the extension as described above. The only difference is that the implementation of your plugin would be different. Each plugin package has a `NewPlugin` function which takes the plugin name as the first argument, followed by a list of required arguments to implement the plugin. 
+The process required to create a config and/or logger plugin is very similar to the process outlined above for creating an osquery table. Specifically, you would create an `ExtensionManagerServer` instance in `func main()`, register your plugin and launch the extension as described above. The only difference is that the implementation of your plugin would be different. Each plugin package has a `NewPlugin` function which takes the plugin name as the first argument, followed by a list of required arguments to implement the plugin.
 For example, consider the implementation of an example logger plugin:
 
 ```go
@@ -224,7 +227,7 @@ If you write an extension with a logger or config plugin, you'll likely want to 
 1. Build the plugin. Make sure to add `.ext` as the file extension. It is required by osqueryd.
 ```go build -o /usr/local/osquery_extensions/my_logger.ext```
 
-2. Set the correct permissions on the file and directory. If `osqueryd` runs as root, the directory for the extension must only be writable by root. 
+2. Set the correct permissions on the file and directory. If `osqueryd` runs as root, the directory for the extension must only be writable by root.
 
 ```
 sudo chown -R root /usr/local/osquery_extensions/
