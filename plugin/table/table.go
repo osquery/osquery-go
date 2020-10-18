@@ -4,7 +4,11 @@ package table
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"math/big"
+	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/kolide/osquery-go/gen/osquery"
 	"github.com/pkg/errors"
@@ -14,20 +18,89 @@ import (
 // should be checked for cancellation if the generation performs a
 // substantial amount of work. The queryContext argument provides the
 // deserialized JSON query context from osquery.
-type GenerateFunc func(ctx context.Context, queryContext QueryContext) ([]map[string]string, error)
+type GenerateFunc func(ctx context.Context, queryContext QueryContext) ([]RowDefinition, error)
 
 type Plugin struct {
 	name     string
+	rowType  RowDefinition
 	columns  []ColumnDefinition
 	generate GenerateFunc
 }
 
-func NewPlugin(name string, columns []ColumnDefinition, gen GenerateFunc) *Plugin {
+type RowDefinition interface{}
+
+func NewPlugin(name string, rowDefinition RowDefinition, gen GenerateFunc) (*Plugin, error) {
+	columns, err := generateColumnDefinition(rowDefinition)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Plugin{
 		name:     name,
+		rowType:  rowDefinition,
 		columns:  columns,
 		generate: gen,
+	}, nil
+}
+
+func generateColumnDefinition(rowDefinition RowDefinition) ([]ColumnDefinition, error) {
+	row := reflect.ValueOf(rowDefinition)
+	if row.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("row definition must be a struct")
 	}
+
+	var columns []ColumnDefinition
+	for i := 0; i < row.Type().NumField(); i++ {
+		field := row.Type().Field(i)
+
+		columnName := field.Name
+		if tag, ok := field.Tag.Lookup("column"); ok {
+			columnName = strings.Split(tag, ",")[0]
+		}
+
+		var columnType ColumnType
+		switch field.Type.Kind() {
+		case reflect.String:
+			columnType = ColumnTypeText
+		case reflect.Int:
+			columnType = ColumnTypeInteger
+		case reflect.Float64:
+			columnType = ColumnTypeDouble
+		default:
+			if field.Type == reflect.TypeOf(&big.Int{}) {
+				columnType = ColumnTypeBigInt
+				break
+			}
+			return nil, fmt.Errorf("field %s has unsupported type %s", field.Name, field.Type.Kind())
+		}
+
+		columns = append(columns, ColumnDefinition{
+			Name: columnName,
+			Type: columnType,
+		})
+	}
+	return columns, nil
+}
+
+func rowsToPluginResponse(rows ...RowDefinition) osquery.ExtensionPluginResponse {
+	var response osquery.ExtensionPluginResponse
+
+	for _, rowDefinition := range rows {
+		row := reflect.ValueOf(rowDefinition)
+		result := map[string]string{}
+		for i := 0; i < row.Type().NumField(); i++ {
+			field := row.Type().Field(i)
+
+			columnName := field.Name
+			if tag, ok := field.Tag.Lookup("column"); ok {
+				columnName = strings.Split(tag, ",")[0]
+			}
+
+			result[columnName] = fmt.Sprint(row.Field(i).Interface())
+		}
+		response = append(response, result)
+	}
+	return response
 }
 
 func (t *Plugin) Name() string {
@@ -77,7 +150,7 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 
 		return osquery.ExtensionResponse{
 			Status:   &ok,
-			Response: rows,
+			Response: rowsToPluginResponse(rows...),
 		}
 
 	case "columns":
@@ -151,9 +224,9 @@ type ColumnType string
 // The following column types are defined in osquery tables.h.
 const (
 	ColumnTypeText    ColumnType = "TEXT"
-	ColumnTypeInteger            = "INTEGER"
-	ColumnTypeBigInt             = "BIGINT"
-	ColumnTypeDouble             = "DOUBLE"
+	ColumnTypeInteger ColumnType = "INTEGER"
+	ColumnTypeBigInt  ColumnType = "BIGINT"
+	ColumnTypeDouble  ColumnType = "DOUBLE"
 )
 
 // QueryContext contains the constraints from the WHERE clause of the query,
@@ -185,15 +258,15 @@ type Operator int
 // The following operators are dfined in osquery tables.h.
 const (
 	OperatorEquals              Operator = 2
-	OperatorGreaterThan                  = 4
-	OperatorLessThanOrEquals             = 8
-	OperatorLessThan                     = 16
-	OperatorGreaterThanOrEquals          = 32
-	OperatorMatch                        = 64
-	OperatorLike                         = 65
-	OperatorGlob                         = 66
-	OperatorRegexp                       = 67
-	OperatorUnique                       = 1
+	OperatorGreaterThan         Operator = 4
+	OperatorLessThanOrEquals    Operator = 8
+	OperatorLessThan            Operator = 16
+	OperatorGreaterThanOrEquals Operator = 32
+	OperatorMatch               Operator = 64
+	OperatorLike                Operator = 65
+	OperatorGlob                Operator = 66
+	OperatorRegexp              Operator = 67
+	OperatorUnique              Operator = 1
 )
 
 // The following types and functions exist for parsing of the queryContext

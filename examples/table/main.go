@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"math/big"
 	"time"
 
 	"github.com/kolide/osquery-go"
@@ -38,28 +39,42 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}
-	server.RegisterPlugin(table.NewPlugin("example_table", ExampleColumns(), ExampleGenerate))
+
+	exampleTable, err := table.NewPlugin("example_table", ExampleRow{}, ExampleGenerate)
+	if err != nil {
+		log.Fatalf("Error creating table plugin: %s\n", err)
+	}
+
+	server.RegisterPlugin(exampleTable)
 	if err := server.Run(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func ExampleColumns() []table.ColumnDefinition {
-	return []table.ColumnDefinition{
-		table.TextColumn("text"),
-		table.IntegerColumn("integer"),
-		table.BigIntColumn("big_int"),
-		table.DoubleColumn("double"),
-	}
+type ExampleRow struct {
+	Text    string   `column:"text"`
+	Integer int      `column:"integer"`
+	BigInt  *big.Int `column:"big_int"`
+	Double  float64  `column:"double"`
 }
 
-func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]map[string]string, error) {
-	return []map[string]string{
-		{
-			"text":    "hello world",
-			"integer": "123",
-			"big_int": "-1234567890",
-			"double":  "3.14159",
+//
+//func ExampleColumns() []table.ColumnDefinition {
+//	return []table.ColumnDefinition{
+//		table.TextColumn("text"),
+//		table.IntegerColumn("integer"),
+//		table.BigIntColumn("big_int"),
+//		table.DoubleColumn("double"),
+//	}
+//}
+
+func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]table.RowDefinition, error) {
+	return []table.RowDefinition{
+		ExampleRow{
+			Text:    "hello world",
+			Integer: 123,
+			BigInt:  big.NewInt(1013010),
+			Double:  3.14159,
 		},
 	}, nil
 }

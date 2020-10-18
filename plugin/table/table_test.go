@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/kolide/osquery-go/gen/osquery"
@@ -11,28 +12,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type ExampleRow struct {
+	Text    string   `column:"text"`
+	Integer int      `column:"integer"`
+	BigInt  *big.Int `column:"big_int"`
+	Double  float64  `column:"double"`
+}
+
 func TestTablePlugin(t *testing.T) {
 	var StatusOK = osquery.ExtensionStatus{Code: 0, Message: "OK"}
 	var calledQueryCtx QueryContext
-	plugin := NewPlugin(
+	plugin, err := NewPlugin(
 		"mock",
-		[]ColumnDefinition{
-			TextColumn("text"),
-			IntegerColumn("integer"),
-			BigIntColumn("big_int"),
-			DoubleColumn("double"),
-		},
-		func(ctx context.Context, queryCtx QueryContext) ([]map[string]string, error) {
+		ExampleRow{},
+		func(ctx context.Context, queryCtx QueryContext) ([]RowDefinition, error) {
 			calledQueryCtx = queryCtx
-			return []map[string]string{
-				{
-					"text":    "hello world",
-					"integer": "123",
-					"big_int": "-1234567890",
-					"double":  "3.14159",
+			return []RowDefinition{
+				ExampleRow{
+					Text:    "hello world",
+					Integer: 123,
+					BigInt:  big.NewInt(-1234567890),
+					Double:  3.14159,
 				},
 			}, nil
 		})
+	require.NoError(t, err)
 
 	// Basic methods
 	assert.Equal(t, "table", plugin.RegistryName())
@@ -71,19 +75,15 @@ func TestTablePlugin(t *testing.T) {
 
 func TestTablePluginErrors(t *testing.T) {
 	var called bool
-	plugin := NewPlugin(
+	plugin, err := NewPlugin(
 		"mock",
-		[]ColumnDefinition{
-			TextColumn("text"),
-			IntegerColumn("integer"),
-			BigIntColumn("big_int"),
-			DoubleColumn("double"),
-		},
-		func(ctx context.Context, queryCtx QueryContext) ([]map[string]string, error) {
+		ExampleRow{},
+		func(ctx context.Context, queryCtx QueryContext) ([]RowDefinition, error) {
 			called = true
 			return nil, errors.New("foobar")
 		},
 	)
+	require.NoError(t, err)
 
 	// Call with bad actions
 	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{}).Status.Code)
