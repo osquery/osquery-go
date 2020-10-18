@@ -129,29 +129,18 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 	ok := osquery.ExtensionStatus{Code: 0, Message: "OK"}
 	switch request["action"] {
 	case "generate":
-		queryContext, err := parseQueryContext(request["context"])
+		resp, err := t.generateCall(ctx, request)
 		if err != nil {
 			return osquery.ExtensionResponse{
 				Status: &osquery.ExtensionStatus{
 					Code:    1,
-					Message: "error parsing context JSON: " + err.Error(),
+					Message: err.Error(),
 				},
 			}
 		}
-
-		rows, err := t.generate(ctx, *queryContext)
-		if err != nil {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: "error generating table: " + err.Error(),
-				},
-			}
-		}
-
 		return osquery.ExtensionResponse{
-			Status:   &ok,
-			Response: rowsToPluginResponse(rows...),
+			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
+			Response: resp,
 		}
 
 	case "columns":
@@ -177,45 +166,26 @@ func (t *Plugin) Ping() osquery.ExtensionStatus {
 
 func (t *Plugin) Shutdown() {}
 
+func (t *Plugin) generateCall(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
+	queryContext, err := parseQueryContext(request["context"])
+	if err != nil {
+		return nil, fmt.Errorf("error parsing context JSON: %w", err)
+	}
+
+	rows, err := t.generate(ctx, *queryContext)
+	if err != nil {
+		return nil, fmt.Errorf("error generating table: %w", err)
+	}
+
+	return rowsToPluginResponse(rows...), nil
+}
+
 // ColumnDefinition defines the relevant information for a column in a table
 // plugin. Both values are mandatory. Prefer using the *Column helpers to
 // create ColumnDefinition structs.
 type ColumnDefinition struct {
 	Name string
 	Type ColumnType
-}
-
-// TextColumn is a helper for defining columns containing strings.
-func TextColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeText,
-	}
-}
-
-// IntegerColumn is a helper for defining columns containing integers.
-func IntegerColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeInteger,
-	}
-}
-
-// BigIntColumn is a helper for defining columns containing big integers.
-func BigIntColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeBigInt,
-	}
-}
-
-// DoubleColumn is a helper for defining columns containing floating point
-// values.
-func DoubleColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeDouble,
-	}
 }
 
 // ColumnType is a strongly typed representation of the data type string for a
