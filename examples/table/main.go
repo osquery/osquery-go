@@ -40,7 +40,7 @@ func main() {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}
 
-	exampleTable, err := table.NewPlugin("example_table", ExampleRow{}, ExampleGenerate)
+	exampleTable, err := table.NewPlugin("example_table", ExampleRow{}, table.GenerateFunc(ExampleGenerate))
 	if err != nil {
 		log.Fatalf("Error creating table plugin: %s\n", err)
 	}
@@ -57,16 +57,6 @@ type ExampleRow struct {
 	BigInt  *big.Int `column:"big_int"`
 	Double  float64  `column:"double"`
 }
-
-//
-//func ExampleColumns() []table.ColumnDefinition {
-//	return []table.ColumnDefinition{
-//		table.TextColumn("text"),
-//		table.IntegerColumn("integer"),
-//		table.BigIntColumn("big_int"),
-//		table.DoubleColumn("double"),
-//	}
-//}
 
 func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]table.RowDefinition, error) {
 	return []table.RowDefinition{

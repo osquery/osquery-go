@@ -25,7 +25,7 @@ func TestTablePlugin(t *testing.T) {
 	plugin, err := NewPlugin(
 		"mock",
 		ExampleRow{},
-		func(ctx context.Context, queryCtx QueryContext) ([]RowDefinition, error) {
+		GenerateFunc(func(ctx context.Context, queryCtx QueryContext) ([]RowDefinition, error) {
 			calledQueryCtx = queryCtx
 			return []RowDefinition{
 				ExampleRow{
@@ -35,7 +35,7 @@ func TestTablePlugin(t *testing.T) {
 					Double:  3.14159,
 				},
 			}, nil
-		})
+		}))
 	require.NoError(t, err)
 
 	// Basic methods
@@ -78,11 +78,11 @@ func TestTablePluginErrors(t *testing.T) {
 	plugin, err := NewPlugin(
 		"mock",
 		ExampleRow{},
-		func(ctx context.Context, queryCtx QueryContext) ([]RowDefinition, error) {
+		GenerateFunc(func(ctx context.Context, queryCtx QueryContext) ([]RowDefinition, error) {
 			called = true
 			return nil, errors.New("foobar")
 		},
-	)
+		))
 	require.NoError(t, err)
 
 	// Call with bad actions
