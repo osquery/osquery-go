@@ -20,9 +20,12 @@ type Plugin struct {
 	columns  []ColumnDefinition
 	generate GenerateFuncImpl
 	insert   InsertFuncImpl
+	update   UpdateFuncImpl
 }
 
 type RowDefinition interface{}
+
+type RowID int
 
 type Option func(*Plugin)
 
@@ -55,9 +58,15 @@ func generateColumnDefinition(rowDefinition RowDefinition) ([]ColumnDefinition, 
 	for i := 0; i < row.Type().NumField(); i++ {
 		field := row.Type().Field(i)
 
+		fieldTag, fieldTagExists := field.Tag.Lookup("column")
+
+		if field.Type == reflect.TypeOf(RowID(0)) && !fieldTagExists {
+			continue
+		}
+
 		columnName := field.Name
-		if tag, ok := field.Tag.Lookup("column"); ok {
-			columnName = strings.Split(tag, ",")[0]
+		if fieldTagExists {
+			columnName = strings.Split(fieldTag, ",")[0]
 		}
 
 		var columnType ColumnType
@@ -94,8 +103,12 @@ func rowsToPluginResponse(rows ...RowDefinition) osquery.ExtensionPluginResponse
 			field := row.Type().Field(i)
 
 			columnName := field.Name
-			if tag, ok := field.Tag.Lookup("column"); ok {
-				columnName = strings.Split(tag, ",")[0]
+			fieldTag, fieldTagExists := field.Tag.Lookup("column")
+			if fieldTagExists {
+				columnName = strings.Split(fieldTag, ",")[0]
+			}
+			if field.Type == reflect.TypeOf(RowID(0)) && !fieldTagExists {
+				columnName = "rowid" // magic string that makes osquery pass this value back as the identifier for "update" calls
 			}
 
 			result[columnName] = fmt.Sprint(row.Field(i).Interface())
@@ -126,7 +139,12 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 	return routes
 }
 
-func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
+func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) (response osquery.ExtensionResponse) {
+	fmt.Println("Got request", request)
+	defer func() {
+		fmt.Println("Returning response", response)
+		fmt.Println()
+	}()
 	ok := osquery.ExtensionStatus{Code: 0, Message: "OK"}
 	switch request["action"] {
 	case "generate":
@@ -147,7 +165,21 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 	case "insert":
 		resp, err := t.insertRow(ctx, request)
 		if err != nil {
-			fmt.Println("error from insertFunc", err)
+			return osquery.ExtensionResponse{
+				Status: &osquery.ExtensionStatus{
+					Code:    1,
+					Message: err.Error(),
+				},
+			}
+		}
+		return osquery.ExtensionResponse{
+			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
+			Response: resp,
+		}
+
+	case "update":
+		resp, err := t.updateRow(ctx, request)
+		if err != nil {
 			return osquery.ExtensionResponse{
 				Status: &osquery.ExtensionStatus{
 					Code:    1,
@@ -184,6 +216,9 @@ func (t *Plugin) Ping() osquery.ExtensionStatus {
 func (t *Plugin) Shutdown() {}
 
 func (t *Plugin) generateRows(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
+	if t.generate == nil {
+		return nil, fmt.Errorf("unsupported operation \"generate\"")
+	}
 	queryContext, err := parseQueryContext(request["context"])
 	if err != nil {
 		return nil, fmt.Errorf("error parsing context JSON: %w", err)
@@ -198,6 +233,9 @@ func (t *Plugin) generateRows(ctx context.Context, request osquery.ExtensionPlug
 }
 
 func (t *Plugin) insertRow(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
+	if t.insert == nil {
+		return nil, fmt.Errorf("unsupported operation \"insert\"")
+	}
 	row, err := parseRowValues(request["json_value_array"], t.rowType)
 	if err != nil {
 		return nil, err
@@ -216,6 +254,32 @@ func (t *Plugin) insertRow(ctx context.Context, request osquery.ExtensionPluginR
 	}, nil
 }
 
+func (t *Plugin) updateRow(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
+	if t.update == nil {
+		return nil, fmt.Errorf("unsupported operation \"update\"")
+	}
+	row, err := parseRowValues(request["json_value_array"], t.rowType)
+	if err != nil {
+		return nil, err
+	}
+
+	rowID, err := strconv.Atoi(request["id"])
+	if err != nil {
+		return nil, err
+	}
+
+	err = t.update(ctx, rowID, row)
+	if err != nil {
+		return nil, fmt.Errorf("error generating table: %w", err)
+	}
+
+	return []map[string]string{
+		{
+			"status": "success",
+		},
+	}, nil
+}
+
 func parseRowValues(rowJSON string, definition RowDefinition) (RowDefinition, error) {
 	fmt.Println("Parsing rowJSON", rowJSON)
 	var rowValues []json.RawMessage
@@ -224,22 +288,31 @@ func parseRowValues(rowJSON string, definition RowDefinition) (RowDefinition, er
 	}
 
 	row := reflect.New(reflect.TypeOf(definition)).Elem()
+	offset := 0
 	for i := 0; i < row.Type().NumField(); i++ {
 		field := row.Type().Field(i)
 
+		_, fieldTagExists := field.Tag.Lookup("column")
+		if field.Type == reflect.TypeOf(RowID(0)) && !fieldTagExists {
+			// This is just a row ID field that isn't an actual column
+			offset--
+			continue
+		}
+
+		rowValue := rowValues[i+offset]
 		switch field.Type.Kind() {
 		case reflect.String:
-			row.Field(i).SetString(string(rowValues[i]))
+			row.Field(i).SetString(string(rowValue))
 
 		case reflect.Int:
-			intValue, err := strconv.Atoi(string(rowValues[i]))
+			intValue, err := strconv.Atoi(string(rowValue))
 			if err != nil {
 				return nil, err
 			}
 			row.Field(i).SetInt(int64(intValue))
 
 		case reflect.Float64:
-			floatValue, err := strconv.ParseFloat(string(rowValues[i]), 64)
+			floatValue, err := strconv.ParseFloat(string(rowValue), 64)
 			if err != nil {
 				return nil, err
 			}
@@ -247,9 +320,9 @@ func parseRowValues(rowJSON string, definition RowDefinition) (RowDefinition, er
 
 		default:
 			if field.Type == reflect.TypeOf(&big.Int{}) {
-				bigIntValue, ok := big.NewInt(0).SetString(string(rowValues[i]), 10)
+				bigIntValue, ok := big.NewInt(0).SetString(string(rowValue), 10)
 				if !ok {
-					return nil, fmt.Errorf("invalid big.Int %s", string(rowValues[i]))
+					return nil, fmt.Errorf("invalid big.Int %s", string(rowValue))
 				}
 				row.Field(i).Set(reflect.ValueOf(bigIntValue))
 				break

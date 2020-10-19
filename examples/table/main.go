@@ -44,7 +44,9 @@ func main() {
 	exampleTable, err := table.NewPlugin("example_table",
 		ExampleRow{},
 		table.GenerateFunc(ExampleGenerate),
-		table.InsertFunc(ExampleInsert))
+		table.InsertFunc(ExampleInsert),
+		table.UpdateFunc(ExampleUpdate),
+	)
 	if err != nil {
 		log.Fatalf("Error creating table plugin: %s\n", err)
 	}
@@ -56,6 +58,7 @@ func main() {
 }
 
 type ExampleRow struct {
+	ID      table.RowID
 	Text    string   `column:"text"`
 	Integer int      `column:"integer"`
 	BigInt  *big.Int `column:"big_int"`
@@ -65,7 +68,15 @@ type ExampleRow struct {
 func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]table.RowDefinition, error) {
 	return []table.RowDefinition{
 		ExampleRow{
+			ID:      1010,
 			Text:    "hello world",
+			Integer: 123,
+			BigInt:  big.NewInt(1013010),
+			Double:  3.14159,
+		},
+		ExampleRow{
+			ID:      101010101,
+			Text:    "hello universe",
 			Integer: 123,
 			BigInt:  big.NewInt(1013010),
 			Double:  3.14159,
@@ -81,4 +92,14 @@ func ExampleInsert(ctx context.Context, row table.RowDefinition) (int, error) {
 
 	fmt.Println("Inserting row", rowValue)
 	return 7, nil
+}
+
+func ExampleUpdate(ctx context.Context, rowID int, row table.RowDefinition) error {
+	rowValue, ok := row.(ExampleRow)
+	if !ok {
+		return fmt.Errorf("you gave me a wrong row type")
+	}
+
+	fmt.Println("Updating row", rowID, rowValue)
+	return nil
 }
