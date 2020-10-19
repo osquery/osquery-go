@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"math/big"
 	"time"
@@ -40,7 +41,10 @@ func main() {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}
 
-	exampleTable, err := table.NewPlugin("example_table", ExampleRow{}, table.GenerateFunc(ExampleGenerate))
+	exampleTable, err := table.NewPlugin("example_table",
+		ExampleRow{},
+		table.GenerateFunc(ExampleGenerate),
+		table.InsertFunc(ExampleInsert))
 	if err != nil {
 		log.Fatalf("Error creating table plugin: %s\n", err)
 	}
@@ -67,4 +71,14 @@ func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]ta
 			Double:  3.14159,
 		},
 	}, nil
+}
+
+func ExampleInsert(ctx context.Context, row table.RowDefinition) (int, error) {
+	rowValue, ok := row.(ExampleRow)
+	if !ok {
+		return 0, fmt.Errorf("you gave me a wrong row type")
+	}
+
+	fmt.Println("Inserting row", rowValue)
+	return 7, nil
 }

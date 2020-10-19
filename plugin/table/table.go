@@ -19,6 +19,7 @@ type Plugin struct {
 	rowType  RowDefinition
 	columns  []ColumnDefinition
 	generate GenerateFuncImpl
+	insert   InsertFuncImpl
 }
 
 type RowDefinition interface{}
@@ -129,8 +130,24 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 	ok := osquery.ExtensionStatus{Code: 0, Message: "OK"}
 	switch request["action"] {
 	case "generate":
-		resp, err := t.generateCall(ctx, request)
+		resp, err := t.generateRows(ctx, request)
 		if err != nil {
+			return osquery.ExtensionResponse{
+				Status: &osquery.ExtensionStatus{
+					Code:    1,
+					Message: err.Error(),
+				},
+			}
+		}
+		return osquery.ExtensionResponse{
+			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
+			Response: resp,
+		}
+
+	case "insert":
+		resp, err := t.insertRow(ctx, request)
+		if err != nil {
+			fmt.Println("error from insertFunc", err)
 			return osquery.ExtensionResponse{
 				Status: &osquery.ExtensionStatus{
 					Code:    1,
@@ -166,7 +183,7 @@ func (t *Plugin) Ping() osquery.ExtensionStatus {
 
 func (t *Plugin) Shutdown() {}
 
-func (t *Plugin) generateCall(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
+func (t *Plugin) generateRows(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
 	queryContext, err := parseQueryContext(request["context"])
 	if err != nil {
 		return nil, fmt.Errorf("error parsing context JSON: %w", err)
@@ -178,6 +195,70 @@ func (t *Plugin) generateCall(ctx context.Context, request osquery.ExtensionPlug
 	}
 
 	return rowsToPluginResponse(rows...), nil
+}
+
+func (t *Plugin) insertRow(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
+	row, err := parseRowValues(request["json_value_array"], t.rowType)
+	if err != nil {
+		return nil, err
+	}
+
+	rowID, err := t.insert(ctx, row)
+	if err != nil {
+		return nil, fmt.Errorf("error generating table: %w", err)
+	}
+
+	return []map[string]string{
+		{
+			"id":     fmt.Sprint(rowID),
+			"status": "success",
+		},
+	}, nil
+}
+
+func parseRowValues(rowJSON string, definition RowDefinition) (RowDefinition, error) {
+	fmt.Println("Parsing rowJSON", rowJSON)
+	var rowValues []json.RawMessage
+	if err := json.Unmarshal([]byte(rowJSON), &rowValues); err != nil {
+		return nil, err
+	}
+
+	row := reflect.New(reflect.TypeOf(definition)).Elem()
+	for i := 0; i < row.Type().NumField(); i++ {
+		field := row.Type().Field(i)
+
+		switch field.Type.Kind() {
+		case reflect.String:
+			row.Field(i).SetString(string(rowValues[i]))
+
+		case reflect.Int:
+			intValue, err := strconv.Atoi(string(rowValues[i]))
+			if err != nil {
+				return nil, err
+			}
+			row.Field(i).SetInt(int64(intValue))
+
+		case reflect.Float64:
+			floatValue, err := strconv.ParseFloat(string(rowValues[i]), 64)
+			if err != nil {
+				return nil, err
+			}
+			row.Field(i).SetFloat(floatValue)
+
+		default:
+			if field.Type == reflect.TypeOf(&big.Int{}) {
+				bigIntValue, ok := big.NewInt(0).SetString(string(rowValues[i]), 10)
+				if !ok {
+					return nil, fmt.Errorf("invalid big.Int %s", string(rowValues[i]))
+				}
+				row.Field(i).Set(reflect.ValueOf(bigIntValue))
+				break
+			}
+			return nil, fmt.Errorf("field %s has unsupported type %s", field.Name, field.Type.Kind())
+		}
+	}
+
+	return row.Interface(), nil
 }
 
 // ColumnDefinition defines the relevant information for a column in a table
