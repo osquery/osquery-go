@@ -170,6 +170,12 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 					Code:    1,
 					Message: err.Error(),
 				},
+				Response: osquery.ExtensionPluginResponse{
+					map[string]string{
+						"status":  "failure", // TODO: support the special "readonly" and "constraint" errors here
+						"message": err.Error(),
+					},
+				},
 			}
 		}
 		return osquery.ExtensionResponse{
@@ -184,6 +190,12 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 				Status: &osquery.ExtensionStatus{
 					Code:    1,
 					Message: err.Error(),
+				},
+				Response: osquery.ExtensionPluginResponse{
+					map[string]string{
+						"status":  "failure", // TODO: support the special "readonly" and "constraint" errors here
+						"message": err.Error(),
+					},
 				},
 			}
 		}
@@ -243,7 +255,7 @@ func (t *Plugin) insertRow(ctx context.Context, request osquery.ExtensionPluginR
 
 	rowID, err := t.insert(ctx, row)
 	if err != nil {
-		return nil, fmt.Errorf("error generating table: %w", err)
+		return nil, fmt.Errorf("error inserting row: %w", err)
 	}
 
 	return []map[string]string{
@@ -270,7 +282,7 @@ func (t *Plugin) updateRow(ctx context.Context, request osquery.ExtensionPluginR
 
 	err = t.update(ctx, rowID, row)
 	if err != nil {
-		return nil, fmt.Errorf("error generating table: %w", err)
+		return nil, fmt.Errorf("error updating row: %w", err)
 	}
 
 	return []map[string]string{
