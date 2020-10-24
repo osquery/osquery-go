@@ -25,7 +25,7 @@ func TestTablePlugin(t *testing.T) {
 	plugin, err := NewPlugin(
 		"mock",
 		ExampleRow{},
-		GenerateFunc(func(ctx context.Context, queryCtx QueryContext) ([]RowDefinition, error) {
+		GenerateRows(func(ctx context.Context, queryCtx QueryContext) ([]RowDefinition, error) {
 			calledQueryCtx = queryCtx
 			return []RowDefinition{
 				ExampleRow{
@@ -78,7 +78,7 @@ func TestTablePluginErrors(t *testing.T) {
 	plugin, err := NewPlugin(
 		"mock",
 		ExampleRow{},
-		GenerateFunc(func(ctx context.Context, queryCtx QueryContext) ([]RowDefinition, error) {
+		GenerateRows(func(ctx context.Context, queryCtx QueryContext) ([]RowDefinition, error) {
 			called = true
 			return nil, errors.New("foobar")
 		},

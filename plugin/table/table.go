@@ -18,9 +18,9 @@ type Plugin struct {
 	name     string
 	rowType  RowDefinition
 	columns  []ColumnDefinition
-	generate GenerateFuncImpl
-	insert   InsertFuncImpl
-	update   UpdateFuncImpl
+	generate GenerateRowsImpl
+	insert   InsertRowImpl
+	update   UpdateRowImpl
 }
 
 type RowDefinition interface{}
@@ -280,7 +280,7 @@ func (t *Plugin) updateRow(ctx context.Context, request osquery.ExtensionPluginR
 		return nil, err
 	}
 
-	err = t.update(ctx, rowID, row)
+	err = t.update(ctx, RowID(rowID), row)
 	if err != nil {
 		return nil, fmt.Errorf("error updating row: %w", err)
 	}

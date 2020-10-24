@@ -43,9 +43,9 @@ func main() {
 
 	exampleTable, err := table.NewPlugin("example_table",
 		ExampleRow{},
-		table.GenerateFunc(ExampleGenerate),
-		table.InsertFunc(ExampleInsert),
-		table.UpdateFunc(ExampleUpdate),
+		table.GenerateRows(ExampleGenerate),
+		table.InsertRow(ExampleInsert),
+		table.UpdateRow(ExampleUpdate),
 	)
 	if err != nil {
 		log.Fatalf("Error creating table plugin: %s\n", err)
@@ -84,7 +84,7 @@ func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]ta
 	}, nil
 }
 
-func ExampleInsert(ctx context.Context, row table.RowDefinition) (int, error) {
+func ExampleInsert(ctx context.Context, row table.RowDefinition) (table.RowID, error) {
 	rowValue, ok := row.(ExampleRow)
 	if !ok {
 		return 0, fmt.Errorf("you gave me a wrong row type")
@@ -94,7 +94,7 @@ func ExampleInsert(ctx context.Context, row table.RowDefinition) (int, error) {
 	return 7, nil
 }
 
-func ExampleUpdate(ctx context.Context, rowID int, row table.RowDefinition) error {
+func ExampleUpdate(ctx context.Context, rowID table.RowID, row table.RowDefinition) error {
 	rowValue, ok := row.(ExampleRow)
 	if !ok {
 		return fmt.Errorf("you gave me a wrong row type")
