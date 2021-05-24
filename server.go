@@ -49,6 +49,7 @@ type ExtensionManagerServer struct {
 	timeout      time.Duration
 	pingInterval time.Duration // How often to ping osquery server
 	mutex        sync.Mutex
+	uuid         osquery.ExtensionRouteUUID
 	started      bool // Used to ensure tests wait until the server is actually started
 }
 
@@ -153,6 +154,7 @@ func (s *ExtensionManagerServer) Start() error {
 		if stat.Code != 0 {
 			return errors.Errorf("status %d registering extension: %s", stat.Code, stat.Message)
 		}
+		s.uuid = stat.UUID
 
 		listenPath := fmt.Sprintf("%s.%d", s.sockPath, stat.UUID)
 
@@ -160,7 +162,12 @@ func (s *ExtensionManagerServer) Start() error {
 
 		s.transport, err = transport.OpenServer(listenPath, s.timeout)
 		if err != nil {
-			return errors.Wrapf(err, "opening server socket (%s)", listenPath)
+			openError := errors.Wrapf(err, "opening server socket (%s)", listenPath)
+			_, err = s.serverClient.DeregisterExtension(stat.UUID)
+			if err != nil {
+				return errors.Wrapf(err, "deregistering extension - follows %s", openError.Error())
+			}
+			return openError
 		}
 
 		s.server = thrift.NewTSimpleServer2(processor, s.transport)
@@ -242,10 +249,16 @@ func (s *ExtensionManagerServer) Call(ctx context.Context, registry string, item
 	return &response, nil
 }
 
-// Shutdown stops the server and closes the listening socket.
-func (s *ExtensionManagerServer) Shutdown(ctx context.Context) error {
+// Shutdown deregisters the extension, stops the server and closes all sockets.
+func (s *ExtensionManagerServer) Shutdown(ctx context.Context) (err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+	stat, err := s.serverClient.DeregisterExtension(s.uuid)
+	err = errors.Wrap(err, "deregistering extension")
+	if err == nil && stat.Code != 0 {
+		err = errors.Errorf("status %d deregistering extension: %s", stat.Code, stat.Message)
+	}
+	s.serverClient.Close()
 	if s.server != nil {
 		server := s.server
 		s.server = nil
@@ -258,7 +271,7 @@ func (s *ExtensionManagerServer) Shutdown(ctx context.Context) error {
 		}()
 	}
 
-	return nil
+	return
 }
 
 // Useful for testing
