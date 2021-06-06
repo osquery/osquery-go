@@ -5,7 +5,7 @@ package mock
 import (
 	"context"
 
-	"github.com/kolide/osquery-go/gen/osquery"
+	"github.com/osquery/osquery-go/gen/osquery"
 )
 
 var _ osquery.ExtensionManager = (*ExtensionManager)(nil)
