@@ -14,8 +14,8 @@ import (
 
 	"github.com/apache/thrift/lib/go/thrift"
 
-	"github.com/kolide/osquery-go/gen/osquery"
-	"github.com/kolide/osquery-go/plugin/logger"
+	"github.com/osquery/osquery-go/gen/osquery"
+	"github.com/osquery/osquery-go/plugin/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

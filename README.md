@@ -1,7 +1,7 @@
 # osquery-go
 
-[![CircleCI](https://circleci.com/gh/kolide/osquery-go/tree/master.svg?style=svg)](https://circleci.com/gh/kolide/osquery-go/tree/master)
-[![GoDoc](https://godoc.org/github.com/kolide/osquery-go?status.svg)](http://godoc.org/github.com/kolide/osquery-go)
+[![CircleCI](https://circleci.com/gh/osquery/osquery-go/tree/master.svg?style=svg)](https://circleci.com/gh/osquery/osquery-go/tree/master)
+[![GoDoc](https://godoc.org/github.com/osquery/osquery-go?status.svg)](http://godoc.org/github.com/osquery/osquery-go)
 
 [osquery](https://github.com/facebook/osquery) exposes an operating system as a high-performance relational database. This allows you to write SQL-based queries to explore operating system data. With osquery, SQL tables represent abstract concepts such as running processes, loaded kernel modules, open network connections, browser plugins, hardware events or file hashes.
 
@@ -13,16 +13,11 @@ In osquery, SQL tables, configuration retrieval, log handling, etc. are implemen
 
 ## Install
 
-To install this library in your `GOPATH`:
+This library is compatible with Go Modules. To install:
 
+``` go
+go get github.com/osquery/osquery-go
 ```
-mkdir -p $GOPATH/src/github.com/kolide/
-git clone git@github.com:kolide/osquery-go.git $GOPATH/src/github.com/kolide/osquery-go
-cd $GOPATH/src/github.com/kolide/osquery-go
-make deps
-```
-
-Alternatively, if you're using this in a project that uses a dependency management tool like [Glide](https://github.com/Masterminds/glide) or [Dep](https://github.com/golang/dep), then follow the relevant instructions provided by that tool.
 
 ## Using the library
 
@@ -40,8 +35,8 @@ import (
 	"os"
 	"flag"
 
-	"github.com/kolide/osquery-go"
-	"github.com/kolide/osquery-go/plugin/table"
+	"github.com/osquery/osquery-go"
+	"github.com/osquery/osquery-go/plugin/table"
 )
 
 func main() {
@@ -194,7 +189,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/kolide/osquery-go"
+	"github.com/osquery/osquery-go"
 )
 
 func main() {
