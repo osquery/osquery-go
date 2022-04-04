@@ -14,6 +14,7 @@ var (
 	socket   = flag.String("socket", "", "Path to the extensions UNIX domain socket")
 	timeout  = flag.Int("timeout", 3, "Seconds to wait for autoloaded extensions")
 	interval = flag.Int("interval", 3, "Seconds delay between connectivity checks")
+	_        = flag.Bool("verbose", true, "")
 )
 
 func main() {
@@ -30,6 +31,7 @@ func main() {
 
 	server, err := osquery.NewExtensionManagerServer(
 		"example_extension",
+		"1.0.0",
 		*socket,
 		serverTimeout,
 		serverPingInterval,
