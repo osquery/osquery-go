@@ -46,7 +46,7 @@ func main() {
 		log.Fatalf(`Usage: %s --socket SOCKET_PATH`, os.Args[0])
 	}
 
-	server, err := osquery.NewExtensionManagerServer("foobar", *socket)
+	server, err := osquery.NewExtensionManagerServer("foobar", "0.0.0", *socket)
 	if err != nil {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}

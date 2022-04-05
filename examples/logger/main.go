@@ -15,7 +15,7 @@ func main() {
 	flag.Int("interval", 0, "")
 	flag.Parse()
 
-	server, err := osquery.NewExtensionManagerServer("example_logger", *socketPath)
+	server, err := osquery.NewExtensionManagerServer("example_logger", "0.0.0", *socketPath)
 	if err != nil {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}
