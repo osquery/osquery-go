@@ -31,7 +31,7 @@ func main() {
 
 	server, err := osquery.NewExtensionManagerServer(
 		"example_extension",
-		"1.0.0",
+		"0.0.0",
 		*socket,
 		serverTimeout,
 		serverPingInterval,
