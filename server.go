@@ -33,7 +33,6 @@ type OsqueryPlugin interface {
 	Shutdown()
 }
 
-const defaultVersion = "0.0.0"
 const defaultTimeout = 1 * time.Second
 const defaultPingInterval = 5 * time.Second
 
@@ -97,7 +96,6 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 
 	manager := &ExtensionManagerServer{
 		name:         name,
-		version:      defaultVersion,
 		sockPath:     sockPath,
 		registry:     registry,
 		timeout:      defaultTimeout,
