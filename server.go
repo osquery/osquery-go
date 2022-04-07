@@ -41,6 +41,7 @@ const defaultPingInterval = 5 * time.Second
 // communication with the osquery process.
 type ExtensionManagerServer struct {
 	name         string
+	version      string
 	sockPath     string
 	serverClient ExtensionManager
 	registry     map[string](map[string]OsqueryPlugin)
@@ -63,6 +64,12 @@ var validRegistryNames = map[string]bool{
 }
 
 type ServerOption func(*ExtensionManagerServer)
+
+func ExtensionVersion(version string) ServerOption {
+	return func(s *ExtensionManagerServer) {
+		s.version = version
+	}
+}
 
 func ServerTimeout(timeout time.Duration) ServerOption {
 	return func(s *ExtensionManagerServer) {
@@ -143,7 +150,8 @@ func (s *ExtensionManagerServer) Start() error {
 
 		stat, err := s.serverClient.RegisterExtension(
 			&osquery.InternalExtensionInfo{
-				Name: s.name,
+				Name:    s.name,
+				Version: s.version,
 			},
 			registry,
 		)
