@@ -147,7 +147,7 @@ func (rs *ResultsStruct) UnmarshalJSON(buff []byte) error {
 	rs.Queries = make(map[string][]map[string]string)
 	rs.Statuses = make(map[string]OsqueryInt)
 	// Queries can be []map[string]string OR an empty string
-	// so we need to deal with an interface to accomodate two types
+	// so we need to deal with an interface to accommodate two types
 	intermediate := struct {
 		Queries  map[string]interface{} `json:"queries"`
 		Statuses map[string]OsqueryInt  `json:"statuses"`

@@ -2,12 +2,13 @@ package osquery
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/osquery/osquery-go/gen/osquery"
 	"github.com/osquery/osquery-go/transport"
-	"github.com/pkg/errors"
 
+	"github.com/pkg/errors"
 	"github.com/apache/thrift/lib/go/thrift"
 )
 
@@ -27,13 +28,16 @@ type ExtensionManager interface {
 type ExtensionManagerClient struct {
 	Client    osquery.ExtensionManager
 	transport thrift.TTransport
+	mu sync.Mutex
 }
+
+type ClientOption func(*ExtensionManagerClient)
 
 // NewClient creates a new client communicating to osquery over the socket at
 // the provided path. If resolving the address or connecting to the socket
 // fails, this function will error.
-func NewClient(path string, timeout time.Duration) (*ExtensionManagerClient, error) {
-	trans, err := transport.Open(path, timeout)
+func NewClient(path string, socketOpenTimeout time.Duration) (*ExtensionManagerClient, error) {
+	trans, err := transport.Open(path, socketOpenTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +47,7 @@ func NewClient(path string, timeout time.Duration) (*ExtensionManagerClient, err
 		thrift.NewTBinaryProtocolFactoryDefault(),
 	)
 
-	return &ExtensionManagerClient{client, trans}, nil
+	return &ExtensionManagerClient{Client: client, transport: trans}, nil
 }
 
 // Close should be called to close the transport when use of the client is
@@ -54,48 +58,106 @@ func (c *ExtensionManagerClient) Close() {
 	}
 }
 
-// Ping requests metadata from the extension manager.
+// Ping requests metadata from the extension manager, using a new background context
 func (c *ExtensionManagerClient) Ping() (*osquery.ExtensionStatus, error) {
-	return c.Client.Ping(context.Background())
+	return c.PingContext(context.Background())
+}
+
+// PingContext requests metadata from the extension manager.
+func (c *ExtensionManagerClient) PingContext(ctx context.Context) (*osquery.ExtensionStatus, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Client.Ping(ctx)
+}
+
+// Call requests a call to an extension (or core) registry plugin, using a new background context
+func (c *ExtensionManagerClient) Call(registry, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
+	return c.CallContext(context.Background(), registry, item, request)
 }
 
 // Call requests a call to an extension (or core) registry plugin.
-func (c *ExtensionManagerClient) Call(registry, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
-	return c.Client.Call(context.Background(), registry, item, request)
+func (c *ExtensionManagerClient) CallContext(ctx context.Context, registry, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Client.Call(ctx, registry, item, request)
+}
+
+// Extensions requests the list of active registered extensions, using a new background context
+func (c *ExtensionManagerClient) Extensions() (osquery.InternalExtensionList, error) {
+	return c.ExtensionsContext(context.Background())
 }
 
 // Extensions requests the list of active registered extensions.
-func (c *ExtensionManagerClient) Extensions() (osquery.InternalExtensionList, error) {
-	return c.Client.Extensions(context.Background())
+func (c *ExtensionManagerClient) ExtensionsContext(ctx context.Context) (osquery.InternalExtensionList, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Client.Extensions(ctx)
+}
+
+// RegisterExtension registers the extension plugins with the osquery process, using a new background context
+func (c *ExtensionManagerClient) RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+	return c.RegisterExtensionContext(context.Background(), info, registry)
 }
 
 // RegisterExtension registers the extension plugins with the osquery process.
-func (c *ExtensionManagerClient) RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
-	return c.Client.RegisterExtension(context.Background(), info, registry)
+func (c *ExtensionManagerClient) RegisterExtensionContext(ctx context.Context, info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Client.RegisterExtension(ctx, info, registry)
+}
+
+// DeregisterExtension de-registers the extension plugins with the osquery process, using a new background context
+func (c *ExtensionManagerClient) DeregisterExtension(uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error) {
+	return c.DeregisterExtensionContext(context.Background(), uuid)
 }
 
 // DeregisterExtension de-registers the extension plugins with the osquery process.
-func (c *ExtensionManagerClient) DeregisterExtension(uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error) {
-	return c.Client.DeregisterExtension(context.Background(), uuid)
+func (c *ExtensionManagerClient) DeregisterExtensionContext(ctx context.Context, uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Client.DeregisterExtension(ctx, uuid)
+}
+
+// Options requests the list of bootstrap or configuration options, using a new background context.
+func (c *ExtensionManagerClient) Options() (osquery.InternalOptionList, error) {
+	return c.OptionsContext(context.Background())
 }
 
 // Options requests the list of bootstrap or configuration options.
-func (c *ExtensionManagerClient) Options() (osquery.InternalOptionList, error) {
-	return c.Client.Options(context.Background())
+func (c *ExtensionManagerClient) OptionsContext(ctx context.Context) (osquery.InternalOptionList, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Client.Options(ctx)
+}
+
+// Query requests a query to be run and returns the extension
+// response, using a new background context.  Consider using the
+// QueryRow or QueryRows helpers for a more friendly interface.
+func (c *ExtensionManagerClient) Query(sql string) (*osquery.ExtensionResponse, error) {
+	return c.QueryContext(context.Background(), sql)
 }
 
 // Query requests a query to be run and returns the extension response.
 // Consider using the QueryRow or QueryRows helpers for a more friendly
 // interface.
-func (c *ExtensionManagerClient) Query(sql string) (*osquery.ExtensionResponse, error) {
-	return c.Client.Query(context.Background(), sql)
+func (c *ExtensionManagerClient) QueryContext(ctx context.Context, sql string) (*osquery.ExtensionResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Client.Query(ctx, sql)
 }
 
 // QueryRows is a helper that executes the requested query and returns the
 // results. It handles checking both the transport level errors and the osquery
 // internal errors by returning a normal Go error type.
 func (c *ExtensionManagerClient) QueryRows(sql string) ([]map[string]string, error) {
-	res, err := c.Query(sql)
+	return c.QueryRowsContext(context.Background(), sql)
+}
+
+// QueryRows is a helper that executes the requested query and returns the
+// results. It handles checking both the transport level errors and the osquery
+// internal errors by returning a normal Go error type.
+func (c *ExtensionManagerClient) QueryRowsContext(ctx context.Context, sql string) ([]map[string]string, error) {
+	res, err := c.QueryContext(ctx, sql)
 	if err != nil {
 		return nil, errors.Wrap(err, "transport error in query")
 	}
@@ -112,7 +174,13 @@ func (c *ExtensionManagerClient) QueryRows(sql string) ([]map[string]string, err
 // QueryRow behaves similarly to QueryRows, but it returns an error if the
 // query does not return exactly one row.
 func (c *ExtensionManagerClient) QueryRow(sql string) (map[string]string, error) {
-	res, err := c.QueryRows(sql)
+	return c.QueryRowContext(context.Background(), sql)
+}
+
+// QueryRow behaves similarly to QueryRows, but it returns an error if the
+// query does not return exactly one row.
+func (c *ExtensionManagerClient) QueryRowContext(ctx context.Context, sql string) (map[string]string, error) {
+	res, err := c.QueryRowsContext(ctx, sql)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +190,14 @@ func (c *ExtensionManagerClient) QueryRow(sql string) (map[string]string, error)
 	return res[0], nil
 }
 
-// GetQueryColumns requests the columns returned by the parsed query.
+// GetQueryColumns requests the columns returned by the parsed query, using a new background context.
 func (c *ExtensionManagerClient) GetQueryColumns(sql string) (*osquery.ExtensionResponse, error) {
-	return c.Client.GetQueryColumns(context.Background(), sql)
+	return c.GetQueryColumnsContext(context.Background(), sql)
+}
+
+// GetQueryColumns requests the columns returned by the parsed query.
+func (c *ExtensionManagerClient) GetQueryColumnsContext(ctx context.Context, sql string) (*osquery.ExtensionResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Client.GetQueryColumns(ctx, sql)
 }
