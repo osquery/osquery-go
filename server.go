@@ -83,6 +83,28 @@ func ServerPingInterval(interval time.Duration) ServerOption {
 	}
 }
 
+// WithClient sets the server to use an existing
+// ExtensionManagerClient instead of creating a new one. This is
+// useful as it causes the ExtensionManagerServer to share mutex locks
+// with an existing client.
+func WithClient(client ExtensionManager) ServerOption {
+	return func(s *ExtensionManagerServer) {
+		s.serverClient = client
+	}
+}
+
+type ExtensionManager interface {
+	Close()
+	Ping() (*osquery.ExtensionStatus, error)
+	Call(registry, item string, req osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error)
+	Extensions() (osquery.InternalExtensionList, error)
+	RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error)
+	DeregisterExtension(uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error)
+	Options() (osquery.InternalOptionList, error)
+	Query(sql string) (*osquery.ExtensionResponse, error)
+	GetQueryColumns(sql string) (*osquery.ExtensionResponse, error)
+}
+
 // NewExtensionManagerServer creates a new extension management server
 // communicating with osquery over the socket at the provided path. If
 // resolving the address or connecting to the socket fails, this function will
@@ -106,11 +128,13 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 		opt(manager)
 	}
 
-	serverClient, err := NewClient(sockPath, manager.timeout)
-	if err != nil {
-		return nil, err
+	if manager.serverClient == nil {
+		serverClient, err := NewClient(sockPath, manager.timeout)
+		if err != nil {
+			return nil, err
+		}
+		manager.serverClient = serverClient
 	}
-	manager.serverClient = serverClient
 
 	return manager, nil
 }
