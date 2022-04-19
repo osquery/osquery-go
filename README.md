@@ -1,11 +1,11 @@
 # osquery-go
 
 [![CircleCI](https://circleci.com/gh/osquery/osquery-go/tree/master.svg?style=svg)](https://circleci.com/gh/osquery/osquery-go/tree/master)
-[![GoDoc](https://godoc.org/github.com/osquery/osquery-go?status.svg)](http://godoc.org/github.com/osquery/osquery-go)
+[![GoDoc](https://pkg.go.dev/badge/github.com/osquery/osquery-go)](https://pkg.go.dev/github.com/osquery/osquery-go)
 
-[osquery](https://github.com/facebook/osquery) exposes an operating system as a high-performance relational database. This allows you to write SQL-based queries to explore operating system data. With osquery, SQL tables represent abstract concepts such as running processes, loaded kernel modules, open network connections, browser plugins, hardware events or file hashes.
+[osquery](https://osquery.io/) exposes an operating system as a high-performance relational database. This allows you to write SQL-based queries to explore operating system data. With osquery, SQL tables represent abstract concepts such as running processes, loaded kernel modules, open network connections, browser plugins, hardware events or file hashes.
 
-If you're interested in learning more about osquery, visit the [GitHub project](https://github.com/facebook/osquery), the [website](https://osquery.io), and the [users guide](https://osquery.readthedocs.io).
+If you're interested in learning more about osquery, visit the [website](https://osquery.io), the [GitHub project](https://github.com/osquery/osquery), and the [users guide](https://osquery.readthedocs.io).
 
 ## What is osquery-go?
 
@@ -20,6 +20,15 @@ go get github.com/osquery/osquery-go
 ```
 
 ## Using the library
+
+### A note about osquery's thrift socket
+
+Osquery uses thrift over a local unix socket. This communication is
+single threaded, and errors are likely if callers send additional
+requests before the first one completes.
+
+To address this, this library uses a `mutex` to ensure mutual
+exclusion between callers.
 
 ### Creating a new osquery table
 
