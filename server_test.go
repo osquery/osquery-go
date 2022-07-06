@@ -7,13 +7,13 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
-
 	"github.com/osquery/osquery-go/gen/osquery"
 	"github.com/osquery/osquery-go/plugin/logger"
 	"github.com/stretchr/testify/assert"
@@ -211,5 +211,45 @@ func TestShutdownBasic(t *testing.T) {
 		// Success. Do nothing.
 	case <-time.After(5 * time.Second):
 		t.Fatal("hung on shutdown")
+	}
+}
+
+func TestNewExtensionManagerServer(t *testing.T) {
+	t.Parallel()
+
+	type args struct {
+		name     string
+		sockPath string
+		opts     []ServerOption
+	}
+	tests := []struct {
+		name           string
+		args           args
+		want           *ExtensionManagerServer
+		errContainsStr string
+	}{
+		{
+			name: "socket path too long",
+			args: args{
+				name:     "socket_path_too_long",
+				sockPath: strings.Repeat("a", MaxSocketPathCharacters+1),
+				opts:     []ServerOption{},
+			},
+			errContainsStr: "exceeded the maximum socket path character length",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := NewExtensionManagerServer(tt.args.name, tt.args.sockPath, tt.args.opts...)
+			if tt.errContainsStr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.errContainsStr)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, got)
+			}
+		})
 	}
 }

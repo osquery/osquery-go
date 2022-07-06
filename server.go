@@ -83,11 +83,21 @@ func ServerPingInterval(interval time.Duration) ServerOption {
 	}
 }
 
+// MaxSocketPathCharacters is set to 97 because a ".12345" uuid is added to the socket down stream
+// if the provided socket is greater than 97 we may exceed the limit of 103 (104 causes an error)
+// why 103 limit? https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars
+const MaxSocketPathCharacters = 97
+
 // NewExtensionManagerServer creates a new extension management server
 // communicating with osquery over the socket at the provided path. If
 // resolving the address or connecting to the socket fails, this function will
 // error.
 func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOption) (*ExtensionManagerServer, error) {
+
+	if len(sockPath) > MaxSocketPathCharacters {
+		return nil, errors.Errorf("socket path %s (%d characters) exceeded the maximum socket path character length of %d", sockPath, len(sockPath), MaxSocketPathCharacters)
+	}
+
 	// Initialize nested registry maps
 	registry := make(map[string](map[string]OsqueryPlugin))
 	for reg, _ := range validRegistryNames {
