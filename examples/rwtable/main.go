@@ -172,7 +172,9 @@ func ParseRow(jsonValueArray []interface{}) (Row, error) {
 			return nil, errors.New("Missing value for column \"" + col.Name + "\"")
 		} else if col.Type == table.ColumnTypeText {
 			parsedVal = val.(string)
-		} else if col.Type == table.ColumnTypeInteger || col.Type == table.ColumnTypeBigInt || col.Type == table.ColumnTypeDouble {
+		} else if col.Type == table.ColumnTypeInteger || col.Type == table.ColumnTypeBigInt {
+			parsedVal = strconv.Itoa(int(val.(float64)))
+		} else if col.Type == table.ColumnTypeDouble {
 			parsedVal = fmt.Sprintf("%f", val.(float64))
 		} else {
 			return nil, errors.New("Unknown column type")
