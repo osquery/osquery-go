@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"time"
 
@@ -72,14 +73,20 @@ func GetRowKeys() []string {
 // rather than kept  in sync with all other calls since we know it is always
 // called before writable operations.
 func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]map[string]string, error) {
+	// sorting keys so SELECT returns same order each time
+	rowIndices := make([]string, 0, len(data))
+	for rowIndex := range data {
+		rowIndices = append(rowIndices, rowIndex)
+	}
+	sort.Strings(rowIndices)
+
 	rowIdToRowIndex = map[string]string{}
 	result := []map[string]string{}
-	i := 0
-	for rowIndex, row := range data {
-		result = append(result, row)
+	for i, rowIndex := range rowIndices {
+		result = append(result, data[rowIndex])
 		rowIdToRowIndex[strconv.Itoa(i)] = rowIndex
-		i = i + 1
 	}
+
 	return result, nil
 }
 
