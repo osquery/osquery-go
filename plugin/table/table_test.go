@@ -318,3 +318,92 @@ func TestParseVaryingQueryContexts(t *testing.T) {
 		})
 	}
 }
+
+func TestTablePluginReadOnly(t *testing.T) {
+	var called bool
+	plugin := NewPlugin(
+		"mock",
+		[]ColumnDefinition{
+			TextColumn("text"),
+			IntegerColumn("integer"),
+			BigIntColumn("big_int"),
+			DoubleColumn("double"),
+		},
+		func(ctx context.Context, queryCtx QueryContext) ([]map[string]string, error) {
+			called = true
+			return nil, errors.New("foobar")
+		},
+	)
+
+	ok := osquery.ExtensionStatus{Code: 0, Message: "OK"}
+	readOnlyResponse := osquery.ExtensionResponse{
+		Status:   &ok,
+		Response: []map[string]string{{"status": "readonly"}},
+	}
+
+	assert.Equal(t, readOnlyResponse, plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "insert", "context": "{}"}))
+	assert.False(t, called)
+	assert.Equal(t, readOnlyResponse, plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "update", "context": "{}"}))
+	assert.False(t, called)
+	assert.Equal(t, readOnlyResponse, plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "delete", "context": "{}"}))
+	assert.False(t, called)
+}
+
+func TestTableWritablePlugin(t *testing.T) {
+	plugin := NewWritablePlugin(
+		"mock",
+		[]ColumnDefinition{
+			TextColumn("text"),
+			IntegerColumn("integer"),
+		},
+		// generate
+		func(ctx context.Context, queryCtx QueryContext) ([]map[string]string, error) {
+			return []map[string]string{{"text": "foo", "integer": "42"}}, nil
+		},
+		// insert
+		func(ctx context.Context, queryContext QueryContext, rowId string, autoRowId bool, jsonValueArray []interface{}) ([]map[string]string, error) {
+			return []map[string]string{{"id": "0", "status": "success"}}, nil
+		},
+		// update
+		func(ctx context.Context, queryContext QueryContext, rowId string, jsonValueArray []interface{}) ([]map[string]string, error) {
+			return []map[string]string{{"status": "success"}}, nil
+		},
+		// delete
+		func(ctx context.Context, rowId string) ([]map[string]string, error) {
+			return []map[string]string{{"status": "success"}}, nil
+		})
+
+	ok := osquery.ExtensionStatus{Code: 0, Message: "OK"}
+
+	assert.Equal(t, "table", plugin.RegistryName())
+	assert.Equal(t, "mock", plugin.Name())
+	assert.Equal(t, ok, plugin.Ping())
+	assert.Equal(t, osquery.ExtensionPluginResponse{
+		{"id": "column", "name": "text", "type": "TEXT", "op": "0"},
+		{"id": "column", "name": "integer", "type": "INTEGER", "op": "0"},
+	}, plugin.Routes())
+
+	generateResponse := osquery.ExtensionResponse{
+		Status:   &ok,
+		Response: []map[string]string{{"integer": "42", "text": "foo"}},
+	}
+	assert.Equal(t, generateResponse, plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "generate", "context": "{}"}))
+
+	insertResponse := osquery.ExtensionResponse{
+		Status:   &ok,
+		Response: []map[string]string{{"id": "0", "status": "success"}},
+	}
+	assert.Equal(t, insertResponse, plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "insert", "context": "{}"}))
+
+	updateResponse := osquery.ExtensionResponse{
+		Status:   &ok,
+		Response: []map[string]string{{"status": "success"}},
+	}
+	assert.Equal(t, updateResponse, plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "update", "context": "{}"}))
+
+	deleteResponse := osquery.ExtensionResponse{
+		Status:   &ok,
+		Response: []map[string]string{{"status": "success"}},
+	}
+	assert.Equal(t, deleteResponse, plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "delete", "context": "{}"}))
+}
