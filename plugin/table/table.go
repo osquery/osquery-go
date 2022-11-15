@@ -135,10 +135,8 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 			data, err := t.insert(ctx, *queryContext, rowId, autoRowId, jsonValueArray)
 			if err != nil {
 				return osquery.ExtensionResponse{
-					Status: &osquery.ExtensionStatus{
-						Code:    1,
-						Message: "error inserting rows into table: " + err.Error(),
-					},
+					Status:   &ok,
+					Response: []map[string]string{{"status": "failure", "message": "error inserting rows into table: " + err.Error()}},
 				}
 			}
 			return osquery.ExtensionResponse{
@@ -153,10 +151,8 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 			data, err := t.update(ctx, *queryContext, rowId, jsonValueArray)
 			if err != nil {
 				return osquery.ExtensionResponse{
-					Status: &osquery.ExtensionStatus{
-						Code:    1,
-						Message: "error updating rows in table: " + err.Error(),
-					},
+					Status:   &ok,
+					Response: []map[string]string{{"status": "failure", "message": "error updating rows in table: " + err.Error()}},
 				}
 			}
 			return osquery.ExtensionResponse{
@@ -171,10 +167,8 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 			data, err := t.delete(ctx, rowId)
 			if err != nil {
 				return osquery.ExtensionResponse{
-					Status: &osquery.ExtensionStatus{
-						Code:    1,
-						Message: "error deleting rows from table: " + err.Error(),
-					},
+					Status:   &ok,
+					Response: []map[string]string{{"status": "failure", "message": "error deleting rows from table: " + err.Error()}},
 				}
 			}
 			return osquery.ExtensionResponse{
