@@ -32,7 +32,9 @@ type ExtensionManagerClient struct {
 // NewClient creates a new client communicating to osquery over the socket at
 // the provided path. If resolving the address or connecting to the socket
 // fails, this function will error.
-func NewClient(path string, timeout time.Duration) (*ExtensionManagerClient, error) {
+func NewClient(path string, serverConnectivityCheckInterval, timeout time.Duration) (*ExtensionManagerClient, error) {
+	thrift.ServerConnectivityCheckInterval = serverConnectivityCheckInterval
+
 	trans, err := transport.Open(path, timeout)
 	if err != nil {
 		return nil, err

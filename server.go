@@ -40,18 +40,19 @@ const defaultPingInterval = 5 * time.Second
 // API. Plugins can register with an extension manager, which handles the
 // communication with the osquery process.
 type ExtensionManagerServer struct {
-	name         string
-	version      string
-	sockPath     string
-	serverClient ExtensionManager
-	registry     map[string](map[string]OsqueryPlugin)
-	server       thrift.TServer
-	transport    thrift.TServerTransport
-	timeout      time.Duration
-	pingInterval time.Duration // How often to ping osquery server
-	mutex        sync.Mutex
-	uuid         osquery.ExtensionRouteUUID
-	started      bool // Used to ensure tests wait until the server is actually started
+	name                            string
+	version                         string
+	sockPath                        string
+	serverClient                    ExtensionManager
+	registry                        map[string](map[string]OsqueryPlugin)
+	server                          thrift.TServer
+	transport                       thrift.TServerTransport
+	timeout                         time.Duration
+	pingInterval                    time.Duration // How often to ping osquery server
+	serverConnectivityCheckInterval time.Duration // Thrift server side connectivity check frequency
+	mutex                           sync.Mutex
+	uuid                            osquery.ExtensionRouteUUID
+	started                         bool // Used to ensure tests wait until the server is actually started
 }
 
 // validRegistryNames contains the allowable RegistryName() values. If a plugin
@@ -83,6 +84,12 @@ func ServerPingInterval(interval time.Duration) ServerOption {
 	}
 }
 
+func ServerConnectivityCheckInterval(interval time.Duration) ServerOption {
+	return func(s *ExtensionManagerServer) {
+		s.serverConnectivityCheckInterval = interval
+	}
+}
+
 // MaxSocketPathCharacters is set to 97 because a ".12345" uuid is added to the socket down stream
 // if the provided socket is greater than 97 we may exceed the limit of 103 (104 causes an error)
 // why 103 limit? https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars
@@ -105,18 +112,19 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 	}
 
 	manager := &ExtensionManagerServer{
-		name:         name,
-		sockPath:     sockPath,
-		registry:     registry,
-		timeout:      defaultTimeout,
-		pingInterval: defaultPingInterval,
+		name:                            name,
+		sockPath:                        sockPath,
+		registry:                        registry,
+		timeout:                         defaultTimeout,
+		pingInterval:                    defaultPingInterval,
+		serverConnectivityCheckInterval: time.Millisecond * 5, // Thrift's default value
 	}
 
 	for _, opt := range opts {
 		opt(manager)
 	}
 
-	serverClient, err := NewClient(sockPath, manager.timeout)
+	serverClient, err := NewClient(sockPath, manager.serverConnectivityCheckInterval, manager.timeout)
 	if err != nil {
 		return nil, err
 	}

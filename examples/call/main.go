@@ -23,7 +23,7 @@ name.
 	pluginName := os.Args[3]
 	action := os.Args[4]
 
-	client, err := osquery.NewClient(socketPath, 10*time.Second)
+	client, err := osquery.NewClient(socketPath, 0, 10*time.Second)
 	if err != nil {
 		fmt.Println("Error creating Thrift client: " + err.Error())
 		os.Exit(1)
