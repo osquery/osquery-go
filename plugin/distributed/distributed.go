@@ -45,6 +45,8 @@ type Result struct {
 	Status int `json:"status"`
 	// Rows is the result rows of the query.
 	Rows []map[string]string `json:"rows"`
+	// QueryStats are the stats about the execution of the given query
+	QueryStats *Stats `json:"stats"`
 }
 
 // WriteResultsFunc writes the results of the executed distributed queries. The
@@ -139,6 +141,15 @@ func (oi *OsqueryInt) UnmarshalJSON(buff []byte) error {
 type ResultsStruct struct {
 	Queries  map[string][]map[string]string `json:"queries"`
 	Statuses map[string]OsqueryInt          `json:"statuses"`
+	Stats    map[string]Stats               `json:"stats"`
+}
+
+// Stats holds performance stats about the execution of a given query.
+type Stats struct {
+	WallTimeMs OsqueryInt `json:"wall_time_ms"`
+	UserTime   OsqueryInt `json:"user_time"`
+	SystemTime OsqueryInt `json:"system_time"`
+	Memory     OsqueryInt `json:"memory"`
 }
 
 // UnmarshalJSON turns structurally inconsistent osquery json into a ResultsStruct.
@@ -151,6 +162,7 @@ func (rs *ResultsStruct) UnmarshalJSON(buff []byte) error {
 	intermediate := struct {
 		Queries  map[string]interface{} `json:"queries"`
 		Statuses map[string]OsqueryInt  `json:"statuses"`
+		Stats    map[string]Stats       `json:"stats"`
 	}{}
 	if err := json.Unmarshal(buff, &intermediate); err != nil {
 		return err
@@ -179,6 +191,8 @@ func (rs *ResultsStruct) UnmarshalJSON(buff []byte) error {
 			return fmt.Errorf("results for %q unknown type", queryName)
 		}
 	}
+	// Stats don't require any format changes
+	rs.Stats = intermediate.Stats
 	return nil
 }
 
@@ -186,9 +200,13 @@ func (rs *ResultsStruct) toResults() ([]Result, error) {
 	var results []Result
 	for queryName, rows := range rs.Queries {
 		result := Result{
-			QueryName: queryName,
-			Rows:      rows,
-			Status:    int(rs.Statuses[queryName]),
+			QueryName:  queryName,
+			Rows:       rows,
+			Status:     int(rs.Statuses[queryName]),
+			QueryStats: nil,
+		}
+		if stats, ok := rs.Stats[queryName]; ok {
+			result.QueryStats = &stats
 		}
 		results = append(results, result)
 	}

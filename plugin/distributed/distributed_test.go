@@ -56,6 +56,21 @@ func TestDistributedPlugin(t *testing.T) {
 
 	// Call writeResults
 	getCalled = false
+	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "writeResults", "results": `{"queries":{"query1":[{"iso_8601":"2017-07-10T22:08:40Z"}],"query2":[{"version":"2.4.0"}]},"statuses":{"query1":"0","query2":"0","query3":"1"}, "stats":{"query1":{"wall_time_ms": 1, "user_time": 1, "system_time": 1, "memory": 1},"query2":{"wall_time_ms": 2, "user_time": 2, "system_time": 2, "memory": 2},"query3":{"wall_time_ms": 3, "user_time": 3, "system_time": 3, "memory": 3}}}`})
+	assert.False(t, getCalled)
+	assert.True(t, writeCalled)
+	assert.Equal(t, &StatusOK, resp.Status)
+	// Ensure correct ordering for comparison
+	sort.Slice(results, func(i, j int) bool { return results[i].QueryName < results[j].QueryName })
+	assert.Equal(t, []Result{
+		{"query1", 0, []map[string]string{{"iso_8601": "2017-07-10T22:08:40Z"}}, &Stats{WallTimeMs: 1, UserTime: 1, SystemTime: 1, Memory: 1}},
+		{"query2", 0, []map[string]string{{"version": "2.4.0"}}, &Stats{WallTimeMs: 2, UserTime: 2, SystemTime: 2, Memory: 2}},
+		{"query3", 1, []map[string]string{}, &Stats{WallTimeMs: 3, UserTime: 3, SystemTime: 3, Memory: 3}},
+	},
+		results)
+
+	// Call writeResults -- no stats attached
+	getCalled = false
 	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "writeResults", "results": `{"queries":{"query1":[{"iso_8601":"2017-07-10T22:08:40Z"}],"query2":[{"version":"2.4.0"}]},"statuses":{"query1":"0","query2":"0","query3":"1"}}`})
 	assert.False(t, getCalled)
 	assert.True(t, writeCalled)
@@ -63,9 +78,9 @@ func TestDistributedPlugin(t *testing.T) {
 	// Ensure correct ordering for comparison
 	sort.Slice(results, func(i, j int) bool { return results[i].QueryName < results[j].QueryName })
 	assert.Equal(t, []Result{
-		{"query1", 0, []map[string]string{{"iso_8601": "2017-07-10T22:08:40Z"}}},
-		{"query2", 0, []map[string]string{{"version": "2.4.0"}}},
-		{"query3", 1, []map[string]string{}},
+		{"query1", 0, []map[string]string{{"iso_8601": "2017-07-10T22:08:40Z"}}, nil},
+		{"query2", 0, []map[string]string{{"version": "2.4.0"}}, nil},
+		{"query3", 1, []map[string]string{}, nil},
 	},
 		results)
 }
