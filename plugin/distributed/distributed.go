@@ -46,7 +46,7 @@ type Result struct {
 	// Rows is the result rows of the query.
 	Rows []map[string]string `json:"rows"`
 	// QueryStats are the stats about the execution of the given query
-	QueryStats Stats `json:"stats"`
+	QueryStats *Stats `json:"stats"`
 }
 
 // WriteResultsFunc writes the results of the executed distributed queries. The
@@ -203,7 +203,10 @@ func (rs *ResultsStruct) toResults() ([]Result, error) {
 			QueryName:  queryName,
 			Rows:       rows,
 			Status:     int(rs.Statuses[queryName]),
-			QueryStats: rs.Stats[queryName],
+			QueryStats: nil,
+		}
+		if stats, ok := rs.Stats[queryName]; ok {
+			result.QueryStats = &stats
 		}
 		results = append(results, result)
 	}
