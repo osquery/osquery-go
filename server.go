@@ -3,6 +3,7 @@ package osquery
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -117,14 +118,19 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 		registry:                        registry,
 		timeout:                         defaultTimeout,
 		pingInterval:                    defaultPingInterval,
-		serverConnectivityCheckInterval: time.Millisecond * 5, // Thrift's default value
+		serverConnectivityCheckInterval: math.MinInt64,
 	}
 
 	for _, opt := range opts {
 		opt(manager)
 	}
 
-	serverClient, err := NewClient(sockPath, manager.serverConnectivityCheckInterval, manager.timeout)
+	clientOpts := []ClientOption{}
+	if manager.serverConnectivityCheckInterval >= 0 {
+		clientOpts = append(clientOpts, ServerSideConnectivityCheckInterval(manager.serverConnectivityCheckInterval))
+	}
+
+	serverClient, err := NewClient(sockPath, manager.timeout, clientOpts...)
 	if err != nil {
 		return nil, err
 	}
