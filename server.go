@@ -87,7 +87,7 @@ func ServerPingInterval(interval time.Duration) ServerOption {
 // interval used by connectivity check in thrift compiled TProcessorFunc implementations.
 // See the thrift docs for more information
 func ServerConnectivityCheckInterval(interval time.Duration) ServerOption {
-	return func(s *ExtensionManagerServer) {
+	return func(_ *ExtensionManagerServer) {
 		thrift.ServerConnectivityCheckInterval = interval
 	}
 }
