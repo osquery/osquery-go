@@ -83,6 +83,15 @@ func ServerPingInterval(interval time.Duration) ServerOption {
 	}
 }
 
+// ServerSideConnectivityCheckInterval Sets a thrift package variable for the ticker
+// interval used by connectivity check in thrift compiled TProcessorFunc implementations.
+// See the thrift docs for more information
+func ServerConnectivityCheckInterval(interval time.Duration) ServerOption {
+	return func(_ *ExtensionManagerServer) {
+		thrift.ServerConnectivityCheckInterval = interval
+	}
+}
+
 // MaxSocketPathCharacters is set to 97 because a ".12345" uuid is added to the socket down stream
 // if the provided socket is greater than 97 we may exceed the limit of 103 (104 causes an error)
 // why 103 limit? https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars
