@@ -29,18 +29,10 @@ type ExtensionManagerClient struct {
 	transport thrift.TTransport
 }
 
-type ClientOption func(*ExtensionManagerClient)
-
-func ServerSideConnectivityCheckInterval(interval time.Duration) ClientOption {
-	return func(c *ExtensionManagerClient) {
-		thrift.ServerConnectivityCheckInterval = interval
-	}
-}
-
 // NewClient creates a new client communicating to osquery over the socket at
 // the provided path. If resolving the address or connecting to the socket
 // fails, this function will error.
-func NewClient(path string, timeout time.Duration, opts ...ClientOption) (*ExtensionManagerClient, error) {
+func NewClient(path string, timeout time.Duration) (*ExtensionManagerClient, error) {
 	trans, err := transport.Open(path, timeout)
 	if err != nil {
 		return nil, err
@@ -51,12 +43,7 @@ func NewClient(path string, timeout time.Duration, opts ...ClientOption) (*Exten
 		thrift.NewTBinaryProtocolFactoryDefault(),
 	)
 
-	c := &ExtensionManagerClient{client, trans}
-	for _, opt := range opts {
-		opt(c)
-	}
-
-	return c, nil
+	return &ExtensionManagerClient{client, trans}, nil
 }
 
 // Close should be called to close the transport when use of the client is

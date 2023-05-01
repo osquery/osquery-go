@@ -85,9 +85,12 @@ func ServerPingInterval(interval time.Duration) ServerOption {
 	}
 }
 
+// ServerSideConnectivityCheckInterval Sets a thrift package variable for the ticker
+// interval used by connectivity check in thrift compiled TProcessorFunc implementations.
+// See the thrift docs for more information
 func ServerConnectivityCheckInterval(interval time.Duration) ServerOption {
 	return func(s *ExtensionManagerServer) {
-		s.serverConnectivityCheckInterval = interval
+		thrift.ServerConnectivityCheckInterval = interval
 	}
 }
 
@@ -125,12 +128,7 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 		opt(manager)
 	}
 
-	clientOpts := []ClientOption{}
-	if manager.serverConnectivityCheckInterval >= 0 {
-		clientOpts = append(clientOpts, ServerSideConnectivityCheckInterval(manager.serverConnectivityCheckInterval))
-	}
-
-	serverClient, err := NewClient(sockPath, manager.timeout, clientOpts...)
+	serverClient, err := NewClient(sockPath, manager.timeout)
 	if err != nil {
 		return nil, err
 	}
