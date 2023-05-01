@@ -3,7 +3,6 @@ package osquery
 import (
 	"context"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -41,19 +40,18 @@ const defaultPingInterval = 5 * time.Second
 // API. Plugins can register with an extension manager, which handles the
 // communication with the osquery process.
 type ExtensionManagerServer struct {
-	name                            string
-	version                         string
-	sockPath                        string
-	serverClient                    ExtensionManager
-	registry                        map[string](map[string]OsqueryPlugin)
-	server                          thrift.TServer
-	transport                       thrift.TServerTransport
-	timeout                         time.Duration
-	pingInterval                    time.Duration // How often to ping osquery server
-	serverConnectivityCheckInterval time.Duration // Thrift server side connectivity check frequency
-	mutex                           sync.Mutex
-	uuid                            osquery.ExtensionRouteUUID
-	started                         bool // Used to ensure tests wait until the server is actually started
+	name         string
+	version      string
+	sockPath     string
+	serverClient ExtensionManager
+	registry     map[string](map[string]OsqueryPlugin)
+	server       thrift.TServer
+	transport    thrift.TServerTransport
+	timeout      time.Duration
+	pingInterval time.Duration // How often to ping osquery server
+	mutex        sync.Mutex
+	uuid         osquery.ExtensionRouteUUID
+	started      bool // Used to ensure tests wait until the server is actually started
 }
 
 // validRegistryNames contains the allowable RegistryName() values. If a plugin
@@ -116,12 +114,11 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 	}
 
 	manager := &ExtensionManagerServer{
-		name:                            name,
-		sockPath:                        sockPath,
-		registry:                        registry,
-		timeout:                         defaultTimeout,
-		pingInterval:                    defaultPingInterval,
-		serverConnectivityCheckInterval: math.MinInt64,
+		name:         name,
+		sockPath:     sockPath,
+		registry:     registry,
+		timeout:      defaultTimeout,
+		pingInterval: defaultPingInterval,
 	}
 
 	for _, opt := range opts {
