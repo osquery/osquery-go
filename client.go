@@ -11,18 +11,6 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 )
 
-type ExtensionManager interface {
-	Close()
-	Ping() (*osquery.ExtensionStatus, error)
-	Call(registry, item string, req osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error)
-	Extensions() (osquery.InternalExtensionList, error)
-	RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error)
-	DeregisterExtension(uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error)
-	Options() (osquery.InternalOptionList, error)
-	Query(sql string) (*osquery.ExtensionResponse, error)
-	GetQueryColumns(sql string) (*osquery.ExtensionResponse, error)
-}
-
 // ExtensionManagerClient is a wrapper for the osquery Thrift extensions API.
 type ExtensionManagerClient struct {
 	Client    osquery.ExtensionManager

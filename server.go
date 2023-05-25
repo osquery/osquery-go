@@ -33,6 +33,18 @@ type OsqueryPlugin interface {
 	Shutdown()
 }
 
+type ExtensionManager interface {
+	Close()
+	Ping() (*osquery.ExtensionStatus, error)
+	Call(registry, item string, req osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error)
+	Extensions() (osquery.InternalExtensionList, error)
+	RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error)
+	DeregisterExtension(uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error)
+	Options() (osquery.InternalOptionList, error)
+	Query(sql string) (*osquery.ExtensionResponse, error)
+	GetQueryColumns(sql string) (*osquery.ExtensionResponse, error)
+}
+
 const defaultTimeout = 1 * time.Second
 const defaultPingInterval = 5 * time.Second
 
@@ -95,6 +107,14 @@ func ServerConnectivityCheckInterval(interval time.Duration) ServerOption {
 	}
 }
 
+// WithClient sets the server to use an existing ExtensionManagerClient
+// instead of creating a new one.
+func WithClient(client ExtensionManager) ServerOption {
+	return func(s *ExtensionManagerServer) {
+		s.serverClient = client
+	}
+}
+
 // MaxSocketPathCharacters is set to 97 because a ".12345" uuid is added to the socket down stream
 // if the provided socket is greater than 97 we may exceed the limit of 103 (104 causes an error)
 // why 103 limit? https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars
@@ -112,7 +132,7 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 
 	// Initialize nested registry maps
 	registry := make(map[string](map[string]OsqueryPlugin))
-	for reg, _ := range validRegistryNames {
+	for reg := range validRegistryNames {
 		registry[reg] = make(map[string]OsqueryPlugin)
 	}
 
@@ -128,11 +148,13 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 		opt(manager)
 	}
 
-	serverClient, err := NewClient(sockPath, manager.timeout)
-	if err != nil {
-		return nil, err
+	if manager.serverClient == nil {
+		serverClient, err := NewClient(sockPath, manager.timeout)
+		if err != nil {
+			return nil, err
+		}
+		manager.serverClient = serverClient
 	}
-	manager.serverClient = serverClient
 
 	return manager, nil
 }
@@ -151,7 +173,7 @@ func (s *ExtensionManagerServer) RegisterPlugin(plugins ...OsqueryPlugin) {
 
 func (s *ExtensionManagerServer) genRegistry() osquery.ExtensionRegistry {
 	registry := osquery.ExtensionRegistry{}
-	for regName, _ := range s.registry {
+	for regName := range s.registry {
 		registry[regName] = osquery.ExtensionRouteTable{}
 		for _, plugin := range s.registry[regName] {
 			registry[regName][plugin.Name()] = plugin.Routes()
