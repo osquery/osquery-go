@@ -114,7 +114,7 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 
 func (t *Plugin) Shutdown() {}
 
-//LogType encodes the type of log osquery is outputting.
+// LogType encodes the type of log osquery is outputting.
 type LogType int
 
 const (

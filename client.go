@@ -8,15 +8,15 @@ import (
 	"github.com/osquery/osquery-go/gen/osquery"
 	"github.com/osquery/osquery-go/transport"
 
-	"github.com/pkg/errors"
 	"github.com/apache/thrift/lib/go/thrift"
+	"github.com/pkg/errors"
 )
 
 // ExtensionManagerClient is a wrapper for the osquery Thrift extensions API.
 type ExtensionManagerClient struct {
 	Client    osquery.ExtensionManager
 	transport thrift.TTransport
-	mu sync.Mutex
+	mu        sync.Mutex
 }
 
 type ClientOption func(*ExtensionManagerClient)
