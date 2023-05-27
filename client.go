@@ -18,7 +18,7 @@ const (
 
 // ExtensionManagerClient is a wrapper for the osquery Thrift extensions API.
 type ExtensionManagerClient struct {
-	Client    osquery.ExtensionManager
+	client    osquery.ExtensionManager
 	transport thrift.TTransport
 
 	waitTime    time.Duration
@@ -63,17 +63,16 @@ func NewClient(path string, socketOpenTimeout time.Duration, opts ...ClientOptio
 
 	c.lock = NewLocker(c.waitTime, c.maxWaitTime)
 
-	if c.Client == nil {
+	if c.client == nil {
 		trans, err := transport.Open(path, socketOpenTimeout)
 		if err != nil {
 			return nil, err
 		}
 
-		client := osquery.NewExtensionManagerClientFactory(
+		c.client = osquery.NewExtensionManagerClientFactory(
 			trans,
 			thrift.NewTBinaryProtocolFactoryDefault(),
 		)
-		c.Client = client
 	}
 
 	return c, nil
@@ -98,7 +97,7 @@ func (c *ExtensionManagerClient) PingContext(ctx context.Context) (*osquery.Exte
 		return nil, err
 	}
 	defer c.lock.Unlock()
-	return c.Client.Ping(ctx)
+	return c.client.Ping(ctx)
 }
 
 // Call requests a call to an extension (or core) registry plugin, using a new background context
@@ -112,7 +111,7 @@ func (c *ExtensionManagerClient) CallContext(ctx context.Context, registry, item
 		return nil, err
 	}
 	defer c.lock.Unlock()
-	return c.Client.Call(ctx, registry, item, request)
+	return c.client.Call(ctx, registry, item, request)
 }
 
 // Extensions requests the list of active registered extensions, using a new background context
@@ -126,7 +125,7 @@ func (c *ExtensionManagerClient) ExtensionsContext(ctx context.Context) (osquery
 		return nil, err
 	}
 	defer c.lock.Unlock()
-	return c.Client.Extensions(ctx)
+	return c.client.Extensions(ctx)
 }
 
 // RegisterExtension registers the extension plugins with the osquery process, using a new background context
@@ -140,7 +139,7 @@ func (c *ExtensionManagerClient) RegisterExtensionContext(ctx context.Context, i
 		return nil, err
 	}
 	defer c.lock.Unlock()
-	return c.Client.RegisterExtension(ctx, info, registry)
+	return c.client.RegisterExtension(ctx, info, registry)
 }
 
 // DeregisterExtension de-registers the extension plugins with the osquery process, using a new background context
@@ -154,7 +153,7 @@ func (c *ExtensionManagerClient) DeregisterExtensionContext(ctx context.Context,
 		return nil, err
 	}
 	defer c.lock.Unlock()
-	return c.Client.DeregisterExtension(ctx, uuid)
+	return c.client.DeregisterExtension(ctx, uuid)
 }
 
 // Options requests the list of bootstrap or configuration options, using a new background context.
@@ -168,7 +167,7 @@ func (c *ExtensionManagerClient) OptionsContext(ctx context.Context) (osquery.In
 		return nil, err
 	}
 	defer c.lock.Unlock()
-	return c.Client.Options(ctx)
+	return c.client.Options(ctx)
 }
 
 // Query requests a query to be run and returns the extension
@@ -186,7 +185,7 @@ func (c *ExtensionManagerClient) QueryContext(ctx context.Context, sql string) (
 		return nil, err
 	}
 	defer c.lock.Unlock()
-	return c.Client.Query(ctx, sql)
+	return c.client.Query(ctx, sql)
 }
 
 // QueryRows is a helper that executes the requested query and returns the
@@ -244,5 +243,5 @@ func (c *ExtensionManagerClient) GetQueryColumnsContext(ctx context.Context, sql
 		return nil, err
 	}
 	defer c.lock.Unlock()
-	return c.Client.GetQueryColumns(ctx, sql)
+	return c.client.GetQueryColumns(ctx, sql)
 }

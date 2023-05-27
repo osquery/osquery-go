@@ -157,7 +157,7 @@ func TestLockTimeouts(t *testing.T) {
 // WithOqueryThriftClient sets the underlying thrift client. This can be used to set a mock
 func WithOqueryThriftClient(client osquery.ExtensionManager) ClientOption {
 	return func(c *ExtensionManagerClient) {
-		c.Client = client
+		c.client = client
 	}
 }
 
