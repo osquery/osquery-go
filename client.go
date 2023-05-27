@@ -2,7 +2,6 @@ package osquery
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/osquery/osquery-go/gen/osquery"
@@ -12,30 +11,72 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	defaultWaitTime    = 200 * time.Millisecond
+	defaulMaxtWaitTime = 1 * time.Minute
+)
+
 // ExtensionManagerClient is a wrapper for the osquery Thrift extensions API.
 type ExtensionManagerClient struct {
 	Client    osquery.ExtensionManager
 	transport thrift.TTransport
-	mu        sync.Mutex
+
+	waitTime    time.Duration
+	maxWaitTime time.Duration
+	lock        *locker
 }
 
 type ClientOption func(*ExtensionManagerClient)
 
+// WaitTime sets the default amount of wait time for the osquery socket to free up. You can override this on a per
+// call basis by setting a context deadline
+func DefaultWaitTime(d time.Duration) ClientOption {
+	return func(c *ExtensionManagerClient) {
+		c.waitTime = d
+	}
+}
+
+// MaxWaitTime is the maximum amount of time something is allowed to wait for the osquery socket. This takes precedence
+// over the context deadline.
+func MaxWaitTime(d time.Duration) ClientOption {
+	return func(c *ExtensionManagerClient) {
+		c.maxWaitTime = d
+	}
+}
+
 // NewClient creates a new client communicating to osquery over the socket at
 // the provided path. If resolving the address or connecting to the socket
 // fails, this function will error.
-func NewClient(path string, socketOpenTimeout time.Duration) (*ExtensionManagerClient, error) {
-	trans, err := transport.Open(path, socketOpenTimeout)
-	if err != nil {
-		return nil, err
+func NewClient(path string, socketOpenTimeout time.Duration, opts ...ClientOption) (*ExtensionManagerClient, error) {
+	c := &ExtensionManagerClient{
+		waitTime:    defaultWaitTime,
+		maxWaitTime: defaulMaxtWaitTime,
 	}
 
-	client := osquery.NewExtensionManagerClientFactory(
-		trans,
-		thrift.NewTBinaryProtocolFactoryDefault(),
-	)
+	for _, opt := range opts {
+		opt(c)
+	}
 
-	return &ExtensionManagerClient{Client: client, transport: trans}, nil
+	if c.waitTime > c.maxWaitTime {
+		return nil, errors.New("cannot a default wait time larger than the max wait time")
+	}
+
+	c.lock = NewLocker(c.waitTime, c.maxWaitTime)
+
+	if c.Client == nil {
+		trans, err := transport.Open(path, socketOpenTimeout)
+		if err != nil {
+			return nil, err
+		}
+
+		client := osquery.NewExtensionManagerClientFactory(
+			trans,
+			thrift.NewTBinaryProtocolFactoryDefault(),
+		)
+		c.Client = client
+	}
+
+	return c, nil
 }
 
 // Close should be called to close the transport when use of the client is
@@ -53,8 +94,10 @@ func (c *ExtensionManagerClient) Ping() (*osquery.ExtensionStatus, error) {
 
 // PingContext requests metadata from the extension manager.
 func (c *ExtensionManagerClient) PingContext(ctx context.Context) (*osquery.ExtensionStatus, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	if err := c.lock.Lock(ctx); err != nil {
+		return nil, err
+	}
+	defer c.lock.Unlock()
 	return c.Client.Ping(ctx)
 }
 
@@ -65,8 +108,10 @@ func (c *ExtensionManagerClient) Call(registry, item string, request osquery.Ext
 
 // Call requests a call to an extension (or core) registry plugin.
 func (c *ExtensionManagerClient) CallContext(ctx context.Context, registry, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	if err := c.lock.Lock(ctx); err != nil {
+		return nil, err
+	}
+	defer c.lock.Unlock()
 	return c.Client.Call(ctx, registry, item, request)
 }
 
@@ -77,8 +122,10 @@ func (c *ExtensionManagerClient) Extensions() (osquery.InternalExtensionList, er
 
 // Extensions requests the list of active registered extensions.
 func (c *ExtensionManagerClient) ExtensionsContext(ctx context.Context) (osquery.InternalExtensionList, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	if err := c.lock.Lock(ctx); err != nil {
+		return nil, err
+	}
+	defer c.lock.Unlock()
 	return c.Client.Extensions(ctx)
 }
 
@@ -89,8 +136,10 @@ func (c *ExtensionManagerClient) RegisterExtension(info *osquery.InternalExtensi
 
 // RegisterExtension registers the extension plugins with the osquery process.
 func (c *ExtensionManagerClient) RegisterExtensionContext(ctx context.Context, info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	if err := c.lock.Lock(ctx); err != nil {
+		return nil, err
+	}
+	defer c.lock.Unlock()
 	return c.Client.RegisterExtension(ctx, info, registry)
 }
 
@@ -101,8 +150,10 @@ func (c *ExtensionManagerClient) DeregisterExtension(uuid osquery.ExtensionRoute
 
 // DeregisterExtension de-registers the extension plugins with the osquery process.
 func (c *ExtensionManagerClient) DeregisterExtensionContext(ctx context.Context, uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	if err := c.lock.Lock(ctx); err != nil {
+		return nil, err
+	}
+	defer c.lock.Unlock()
 	return c.Client.DeregisterExtension(ctx, uuid)
 }
 
@@ -113,8 +164,10 @@ func (c *ExtensionManagerClient) Options() (osquery.InternalOptionList, error) {
 
 // Options requests the list of bootstrap or configuration options.
 func (c *ExtensionManagerClient) OptionsContext(ctx context.Context) (osquery.InternalOptionList, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	if err := c.lock.Lock(ctx); err != nil {
+		return nil, err
+	}
+	defer c.lock.Unlock()
 	return c.Client.Options(ctx)
 }
 
@@ -129,8 +182,10 @@ func (c *ExtensionManagerClient) Query(sql string) (*osquery.ExtensionResponse, 
 // Consider using the QueryRow or QueryRows helpers for a more friendly
 // interface.
 func (c *ExtensionManagerClient) QueryContext(ctx context.Context, sql string) (*osquery.ExtensionResponse, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	if err := c.lock.Lock(ctx); err != nil {
+		return nil, err
+	}
+	defer c.lock.Unlock()
 	return c.Client.Query(ctx, sql)
 }
 
@@ -185,7 +240,9 @@ func (c *ExtensionManagerClient) GetQueryColumns(sql string) (*osquery.Extension
 
 // GetQueryColumns requests the columns returned by the parsed query.
 func (c *ExtensionManagerClient) GetQueryColumnsContext(ctx context.Context, sql string) (*osquery.ExtensionResponse, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	if err := c.lock.Lock(ctx); err != nil {
+		return nil, err
+	}
+	defer c.lock.Unlock()
 	return c.Client.GetQueryColumns(ctx, sql)
 }
