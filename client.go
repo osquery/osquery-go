@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	defaultWaitTime    = 200 * time.Millisecond
-	defaulMaxtWaitTime = 1 * time.Minute
+	defaultWaitTime   = 200 * time.Millisecond
+	defaulMaxWaitTime = 1 * time.Minute
 )
 
 // ExtensionManagerClient is a wrapper for the osquery Thrift extensions API.
@@ -50,7 +50,7 @@ func MaxWaitTime(d time.Duration) ClientOption {
 func NewClient(path string, socketOpenTimeout time.Duration, opts ...ClientOption) (*ExtensionManagerClient, error) {
 	c := &ExtensionManagerClient{
 		waitTime:    defaultWaitTime,
-		maxWaitTime: defaulMaxtWaitTime,
+		maxWaitTime: defaulMaxWaitTime,
 	}
 
 	for _, opt := range opts {
