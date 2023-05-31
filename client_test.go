@@ -18,7 +18,7 @@ import (
 func TestQueryRows(t *testing.T) {
 	t.Parallel()
 	mock := &mock.ExtensionManager{}
-	client, err := NewClient("", 5*time.Second, WithOqueryThriftClient(mock))
+	client, err := NewClient("", 5*time.Second, WithOsqueryThriftClient(mock))
 	require.NoError(t, err)
 
 	// Transport related error
@@ -120,7 +120,7 @@ func TestLocking(t *testing.T) {
 func TestLockTimeouts(t *testing.T) {
 	t.Parallel()
 	mock := &mock.ExtensionManager{}
-	client, err := NewClient("", 5*time.Second, WithOqueryThriftClient(mock), DefaultWaitTime(100*time.Millisecond), DefaultWaitTime(5*time.Second))
+	client, err := NewClient("", 5*time.Second, WithOsqueryThriftClient(mock), DefaultWaitTime(100*time.Millisecond), DefaultWaitTime(5*time.Second))
 	require.NoError(t, err)
 
 	wait := sync.WaitGroup{}
@@ -154,8 +154,8 @@ func TestLockTimeouts(t *testing.T) {
 	assert.Equal(t, 1, errCount, "expected error count")
 }
 
-// WithOqueryThriftClient sets the underlying thrift client. This can be used to set a mock
-func WithOqueryThriftClient(client osquery.ExtensionManager) ClientOption {
+// WithOsqueryThriftClient sets the underlying thrift client. This can be used to set a mock
+func WithOsqueryThriftClient(client osquery.ExtensionManager) ClientOption {
 	return func(c *ExtensionManagerClient) {
 		c.client = client
 	}
