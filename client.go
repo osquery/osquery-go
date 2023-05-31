@@ -58,7 +58,7 @@ func NewClient(path string, socketOpenTimeout time.Duration, opts ...ClientOptio
 	}
 
 	if c.waitTime > c.maxWaitTime {
-		return nil, errors.New("cannot a default wait time larger than the max wait time")
+		return nil, errors.New("default wait time larger than max wait time")
 	}
 
 	c.lock = NewLocker(c.waitTime, c.maxWaitTime)
