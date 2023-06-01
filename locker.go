@@ -38,6 +38,9 @@ func (l *locker) Lock(ctx context.Context) error {
 
 	}
 
+	timeout := time.NewTimer(wait)
+	defer timeout.Stop()
+
 	// Block until we get the lock, the context is canceled, or we time out.
 	select {
 	case l.c <- struct{}{}:
@@ -46,19 +49,19 @@ func (l *locker) Lock(ctx context.Context) error {
 	case <-ctx.Done():
 		// context has been canceled
 		return fmt.Errorf("context canceled: %w", ctx.Err())
-	case <-time.After(wait):
+	case <-timeout.C:
 		// timed out
 		return fmt.Errorf(timeoutError, wait)
 	}
 }
 
-// Unlock unlocks l
+// Unlock unlocks l. It is a runtime error to unlock an unlocked locker.
 func (l *locker) Unlock() {
 	select {
 	case <-l.c:
 		return
 	default:
-		// Calling Unlock on an unlocked mutex is a fatal error. We repeat that behavior here.
+		// Calling Unlock on an unlocked mutex is a fatal error. We mirror that behavior here.
 		panic("unlock of unlocked locker")
 	}
 
