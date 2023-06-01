@@ -1,11 +1,22 @@
-name: Go package
+name: Go
 
-on: [push]
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    tags: '*'
+  pull_request:
+    branches: '**'
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
     steps:
       - uses: actions/checkout@v3
 
