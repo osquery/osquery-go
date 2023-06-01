@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLocker(t *testing.T) {
@@ -85,8 +86,6 @@ func TestLocker(t *testing.T) {
 					}
 
 					_ = doer.Once(ctx, tt.sleepTime)
-
-					//					assert.NoErrorf(t, doer.Once(ctx, tt.sleepTime), "once %d", i)
 				}()
 			}
 
@@ -100,7 +99,31 @@ func TestLocker(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestNeedlessUnlock(t *testing.T) {
+	t.Parallel()
+
+	locker := NewLocker(100*time.Millisecond, 200*time.Millisecond)
+
+	wait := sync.WaitGroup{}
+	wait.Add(1)
+	go func() {
+		locker.Unlock()
+		defer wait.Done()
+	}()
+
+	wait.Wait()
+}
+
+func TestDoubleUnlock(t *testing.T) {
+	t.Parallel()
+
+	locker := NewLocker(100*time.Millisecond, 200*time.Millisecond)
+
+	require.NoError(t, locker.Lock(context.TODO()))
+	locker.Unlock()
+	locker.Unlock()
 }
 
 func TestLockerChaos(t *testing.T) {
