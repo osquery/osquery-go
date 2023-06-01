@@ -6,10 +6,15 @@ import (
 	"time"
 )
 
+// locker uses go channels to create a lock mechanism. We use channels, and not the more common mutexes, because the
+// latter cannot be interrupted. This allows callers to timeout without blocking on the mutex.
+//
+// We need _some_ lock mechanism because the underlying thrift socket only allows a single actor at a time. If two
+// goroutines are trying to use the socket at the same time, they will get protocol errors.
 type locker struct {
 	c              chan struct{}
-	defaultTimeout time.Duration
-	maxWait        time.Duration
+	defaultTimeout time.Duration // Default wait time is used if context does not have a deadline
+	maxWait        time.Duration // Maximum time something is allowed to wait
 }
 
 func NewLocker(defaultTimeout time.Duration, maxWait time.Duration) *locker {
@@ -20,8 +25,8 @@ func NewLocker(defaultTimeout time.Duration, maxWait time.Duration) *locker {
 	}
 }
 
+// Lock attempts to lock l. It will wait for the longer of (ctx deadline | defaultTimeout) and maxWait.
 func (l *locker) Lock(ctx context.Context) error {
-
 	// Assume most callers have set a deadline on the context, and start this as being the max allowed wait time
 	wait := l.maxWait
 	timeoutError := "timeout after maximum of %s"
@@ -47,6 +52,7 @@ func (l *locker) Lock(ctx context.Context) error {
 	}
 }
 
+// Unlock unlocks l
 func (l *locker) Unlock() {
 	<-l.c
 }
