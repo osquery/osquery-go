@@ -105,15 +105,7 @@ func TestNeedlessUnlock(t *testing.T) {
 	t.Parallel()
 
 	locker := NewLocker(100*time.Millisecond, 200*time.Millisecond)
-
-	wait := sync.WaitGroup{}
-	wait.Add(1)
-	go func() {
-		locker.Unlock()
-		defer wait.Done()
-	}()
-
-	wait.Wait()
+	assert.Panics(t, func() { locker.Unlock() })
 }
 
 func TestDoubleUnlock(t *testing.T) {
@@ -122,8 +114,8 @@ func TestDoubleUnlock(t *testing.T) {
 	locker := NewLocker(100*time.Millisecond, 200*time.Millisecond)
 
 	require.NoError(t, locker.Lock(context.TODO()))
-	locker.Unlock()
-	locker.Unlock()
+	assert.NotPanics(t, func() { locker.Unlock() })
+	assert.Panics(t, func() { locker.Unlock() })
 }
 
 func TestLockerChaos(t *testing.T) {

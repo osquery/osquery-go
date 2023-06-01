@@ -54,5 +54,12 @@ func (l *locker) Lock(ctx context.Context) error {
 
 // Unlock unlocks l
 func (l *locker) Unlock() {
-	<-l.c
+	select {
+	case <-l.c:
+		return
+	default:
+		// Calling Unlock on an unlocked mutex is a fatal error. We repeat that behavior here.
+		panic("unlock of unlocked locker")
+	}
+
 }
