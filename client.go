@@ -4,23 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/kolide/osquery-go/gen/osquery"
-	"github.com/kolide/osquery-go/transport"
+	"github.com/osquery/osquery-go/gen/osquery"
+	"github.com/osquery/osquery-go/transport"
 	"github.com/pkg/errors"
 
 	"github.com/apache/thrift/lib/go/thrift"
 )
-
-type ExtensionManager interface {
-	Close()
-	Ping() (*osquery.ExtensionStatus, error)
-	Call(registry, item string, req osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error)
-	Extensions() (osquery.InternalExtensionList, error)
-	RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error)
-	Options() (osquery.InternalOptionList, error)
-	Query(sql string) (*osquery.ExtensionResponse, error)
-	GetQueryColumns(sql string) (*osquery.ExtensionResponse, error)
-}
 
 // ExtensionManagerClient is a wrapper for the osquery Thrift extensions API.
 type ExtensionManagerClient struct {
@@ -71,6 +60,11 @@ func (c *ExtensionManagerClient) Extensions() (osquery.InternalExtensionList, er
 // RegisterExtension registers the extension plugins with the osquery process.
 func (c *ExtensionManagerClient) RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
 	return c.Client.RegisterExtension(context.Background(), info, registry)
+}
+
+// DeregisterExtension de-registers the extension plugins with the osquery process.
+func (c *ExtensionManagerClient) DeregisterExtension(uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error) {
+	return c.Client.DeregisterExtension(context.Background(), uuid)
 }
 
 // Options requests the list of bootstrap or configuration options.

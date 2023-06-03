@@ -8,8 +8,8 @@ import (
 
 	"github.com/apache/thrift/lib/go/thrift"
 
-	"github.com/kolide/osquery-go/gen/osquery"
-	"github.com/kolide/osquery-go/transport"
+	"github.com/osquery/osquery-go/gen/osquery"
+	"github.com/osquery/osquery-go/transport"
 	"github.com/pkg/errors"
 )
 
@@ -33,6 +33,18 @@ type OsqueryPlugin interface {
 	Shutdown()
 }
 
+type ExtensionManager interface {
+	Close()
+	Ping() (*osquery.ExtensionStatus, error)
+	Call(registry, item string, req osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error)
+	Extensions() (osquery.InternalExtensionList, error)
+	RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error)
+	DeregisterExtension(uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error)
+	Options() (osquery.InternalOptionList, error)
+	Query(sql string) (*osquery.ExtensionResponse, error)
+	GetQueryColumns(sql string) (*osquery.ExtensionResponse, error)
+}
+
 const defaultTimeout = 1 * time.Second
 const defaultPingInterval = 5 * time.Second
 
@@ -41,6 +53,7 @@ const defaultPingInterval = 5 * time.Second
 // communication with the osquery process.
 type ExtensionManagerServer struct {
 	name         string
+	version      string
 	sockPath     string
 	serverClient ExtensionManager
 	registry     map[string](map[string]OsqueryPlugin)
@@ -49,6 +62,7 @@ type ExtensionManagerServer struct {
 	timeout      time.Duration
 	pingInterval time.Duration // How often to ping osquery server
 	mutex        sync.Mutex
+	uuid         osquery.ExtensionRouteUUID
 	started      bool // Used to ensure tests wait until the server is actually started
 }
 
@@ -63,6 +77,12 @@ var validRegistryNames = map[string]bool{
 
 type ServerOption func(*ExtensionManagerServer)
 
+func ExtensionVersion(version string) ServerOption {
+	return func(s *ExtensionManagerServer) {
+		s.version = version
+	}
+}
+
 func ServerTimeout(timeout time.Duration) ServerOption {
 	return func(s *ExtensionManagerServer) {
 		s.timeout = timeout
@@ -75,14 +95,44 @@ func ServerPingInterval(interval time.Duration) ServerOption {
 	}
 }
 
+// ServerSideConnectivityCheckInterval Sets a thrift package variable for the ticker
+// interval used by connectivity check in thrift compiled TProcessorFunc implementations.
+// See the thrift docs for more information
+func ServerConnectivityCheckInterval(interval time.Duration) ServerOption {
+	return func(s *ExtensionManagerServer) {
+		s.mutex.Lock()
+		defer s.mutex.Unlock()
+
+		thrift.ServerConnectivityCheckInterval = interval
+	}
+}
+
+// WithClient sets the server to use an existing ExtensionManagerClient
+// instead of creating a new one.
+func WithClient(client ExtensionManager) ServerOption {
+	return func(s *ExtensionManagerServer) {
+		s.serverClient = client
+	}
+}
+
+// MaxSocketPathCharacters is set to 97 because a ".12345" uuid is added to the socket down stream
+// if the provided socket is greater than 97 we may exceed the limit of 103 (104 causes an error)
+// why 103 limit? https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars
+const MaxSocketPathCharacters = 97
+
 // NewExtensionManagerServer creates a new extension management server
 // communicating with osquery over the socket at the provided path. If
 // resolving the address or connecting to the socket fails, this function will
 // error.
 func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOption) (*ExtensionManagerServer, error) {
+
+	if len(sockPath) > MaxSocketPathCharacters {
+		return nil, errors.Errorf("socket path %s (%d characters) exceeded the maximum socket path character length of %d", sockPath, len(sockPath), MaxSocketPathCharacters)
+	}
+
 	// Initialize nested registry maps
 	registry := make(map[string](map[string]OsqueryPlugin))
-	for reg, _ := range validRegistryNames {
+	for reg := range validRegistryNames {
 		registry[reg] = make(map[string]OsqueryPlugin)
 	}
 
@@ -98,14 +148,17 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 		opt(manager)
 	}
 
-	serverClient, err := NewClient(sockPath, manager.timeout)
-	if err != nil {
-		if serverClient != nil {
-			serverClient.Close()
+	if manager.serverClient == nil {
+		serverClient, err := NewClient(sockPath, manager.timeout)
+		if err != nil {
+      if serverClient != nil {
+			  serverClient.Close()
+		  }
+
+			return nil, err
 		}
-		return nil, err
+		manager.serverClient = serverClient
 	}
-	manager.serverClient = serverClient
 
 	return manager, nil
 }
@@ -124,7 +177,7 @@ func (s *ExtensionManagerServer) RegisterPlugin(plugins ...OsqueryPlugin) {
 
 func (s *ExtensionManagerServer) genRegistry() osquery.ExtensionRegistry {
 	registry := osquery.ExtensionRegistry{}
-	for regName, _ := range s.registry {
+	for regName := range s.registry {
 		registry[regName] = osquery.ExtensionRouteTable{}
 		for _, plugin := range s.registry[regName] {
 			registry[regName][plugin.Name()] = plugin.Routes()
@@ -145,7 +198,8 @@ func (s *ExtensionManagerServer) Start() error {
 
 		stat, err := s.serverClient.RegisterExtension(
 			&osquery.InternalExtensionInfo{
-				Name: s.name,
+				Name:    s.name,
+				Version: s.version,
 			},
 			registry,
 		)
@@ -156,6 +210,7 @@ func (s *ExtensionManagerServer) Start() error {
 		if stat.Code != 0 {
 			return errors.Errorf("status %d registering extension: %s", stat.Code, stat.Message)
 		}
+		s.uuid = stat.UUID
 
 		listenPath := fmt.Sprintf("%s.%d", s.sockPath, stat.UUID)
 
@@ -163,7 +218,12 @@ func (s *ExtensionManagerServer) Start() error {
 
 		s.transport, err = transport.OpenServer(listenPath, s.timeout)
 		if err != nil {
-			return errors.Wrapf(err, "opening server socket (%s)", listenPath)
+			openError := errors.Wrapf(err, "opening server socket (%s)", listenPath)
+			_, err = s.serverClient.DeregisterExtension(stat.UUID)
+			if err != nil {
+				return errors.Wrapf(err, "deregistering extension - follows %s", openError.Error())
+			}
+			return openError
 		}
 
 		s.server = thrift.NewTSimpleServer2(processor, s.transport)
@@ -245,10 +305,16 @@ func (s *ExtensionManagerServer) Call(ctx context.Context, registry string, item
 	return &response, nil
 }
 
-// Shutdown stops the server and closes the listening socket.
-func (s *ExtensionManagerServer) Shutdown(ctx context.Context) error {
+// Shutdown deregisters the extension, stops the server and closes all sockets.
+func (s *ExtensionManagerServer) Shutdown(ctx context.Context) (err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+	stat, err := s.serverClient.DeregisterExtension(s.uuid)
+	err = errors.Wrap(err, "deregistering extension")
+	if err == nil && stat.Code != 0 {
+		err = errors.Errorf("status %d deregistering extension: %s", stat.Code, stat.Message)
+	}
+	s.serverClient.Close()
 	if s.server != nil {
 		server := s.server
 		s.server = nil
@@ -261,7 +327,7 @@ func (s *ExtensionManagerServer) Shutdown(ctx context.Context) error {
 		}()
 	}
 
-	return nil
+	return
 }
 
 // Useful for testing

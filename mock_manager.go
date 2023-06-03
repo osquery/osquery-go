@@ -2,7 +2,7 @@
 
 package osquery
 
-import "github.com/kolide/osquery-go/gen/osquery"
+import "github.com/osquery/osquery-go/gen/osquery"
 
 var _ ExtensionManager = (*MockExtensionManager)(nil)
 
@@ -15,6 +15,8 @@ type CallFunc func(registry string, item string, req osquery.ExtensionPluginRequ
 type ExtensionsFunc func() (osquery.InternalExtensionList, error)
 
 type RegisterExtensionFunc func(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error)
+
+type DeregisterExtensionFunc func(uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error)
 
 type OptionsFunc func() (osquery.InternalOptionList, error)
 
@@ -37,6 +39,9 @@ type MockExtensionManager struct {
 
 	RegisterExtensionFunc        RegisterExtensionFunc
 	RegisterExtensionFuncInvoked bool
+
+	DeRegisterExtensionFunc        DeregisterExtensionFunc
+	DeRegisterExtensionFuncInvoked bool
 
 	OptionsFunc        OptionsFunc
 	OptionsFuncInvoked bool
@@ -71,6 +76,11 @@ func (m *MockExtensionManager) Extensions() (osquery.InternalExtensionList, erro
 func (m *MockExtensionManager) RegisterExtension(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
 	m.RegisterExtensionFuncInvoked = true
 	return m.RegisterExtensionFunc(info, registry)
+}
+
+func (m *MockExtensionManager) DeregisterExtension(uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error) {
+	m.DeRegisterExtensionFuncInvoked = true
+	return m.DeRegisterExtensionFunc(uuid)
 }
 
 func (m *MockExtensionManager) Options() (osquery.InternalOptionList, error) {
