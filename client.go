@@ -13,7 +13,7 @@ import (
 
 const (
 	defaultWaitTime   = 200 * time.Millisecond
-	defaulMaxWaitTime = 1 * time.Minute
+	defaultMaxWaitTime = 1 * time.Minute
 )
 
 // ExtensionManagerClient is a wrapper for the osquery Thrift extensions API.

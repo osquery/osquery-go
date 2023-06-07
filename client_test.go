@@ -85,7 +85,7 @@ func TestQueryRows(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-// TestLocking tests the the client correctly locks access to the osquery socket. Thrift only support a single
+// TestLocking tests the the client correctly locks access to the osquery socket. Thrift only supports a single
 // actor on the socket at a time, this means that in parallel go code, it's very easy to have messages get
 // crossed and generate errors. This tests to ensure the locking works
 func TestLocking(t *testing.T) {
