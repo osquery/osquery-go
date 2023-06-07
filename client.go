@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	defaultWaitTime   = 200 * time.Millisecond
+	defaultWaitTime    = 200 * time.Millisecond
 	defaultMaxWaitTime = 1 * time.Minute
 )
 
@@ -50,7 +50,7 @@ func MaxWaitTime(d time.Duration) ClientOption {
 func NewClient(path string, socketOpenTimeout time.Duration, opts ...ClientOption) (*ExtensionManagerClient, error) {
 	c := &ExtensionManagerClient{
 		waitTime:    defaultWaitTime,
-		maxWaitTime: defaulMaxWaitTime,
+		maxWaitTime: defaultMaxWaitTime,
 	}
 
 	for _, opt := range opts {

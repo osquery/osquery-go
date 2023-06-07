@@ -25,7 +25,7 @@ func NewLocker(defaultTimeout time.Duration, maxWait time.Duration) *locker {
 	}
 }
 
-// Lock attempts to lock l. It will wait for the longer of (ctx deadline | defaultTimeout) and maxWait.
+// Lock attempts to lock l. It will wait for the shorter of (ctx deadline | defaultTimeout) and maxWait.
 func (l *locker) Lock(ctx context.Context) error {
 	// Assume most callers have set a deadline on the context, and start this as being the max allowed wait time
 	wait := l.maxWait
