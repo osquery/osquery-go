@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/osquery/osquery-go/gen/osquery"
+	"github.com/osquery/osquery-go/traces"
 )
 
 // GetQueriesResult contains the information about which queries the
@@ -234,6 +235,9 @@ func convertRows(rows []interface{}) ([]map[string]string, error) {
 }
 
 func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
+	ctx, span := traces.StartSpan(ctx, "Distributed.Call", "action", request[requestActionKey])
+	defer span.End()
+
 	switch request[requestActionKey] {
 	case getQueriesAction:
 		queries, err := t.getQueries(ctx)

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/osquery/osquery-go/gen/osquery"
+	"github.com/osquery/osquery-go/traces"
 	"github.com/osquery/osquery-go/transport"
 
 	"github.com/apache/thrift/lib/go/thrift"
@@ -107,6 +108,9 @@ func (c *ExtensionManagerClient) Call(registry, item string, request osquery.Ext
 
 // CallContext requests a call to an extension (or core) registry plugin.
 func (c *ExtensionManagerClient) CallContext(ctx context.Context, registry, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
+	ctx, span := traces.StartSpan(ctx, "ExtensionManagerClient.CallContext")
+	defer span.End()
+
 	if err := c.lock.Lock(ctx); err != nil {
 		return nil, err
 	}
@@ -121,6 +125,9 @@ func (c *ExtensionManagerClient) Extensions() (osquery.InternalExtensionList, er
 
 // ExtensionsContext requests the list of active registered extensions.
 func (c *ExtensionManagerClient) ExtensionsContext(ctx context.Context) (osquery.InternalExtensionList, error) {
+	ctx, span := traces.StartSpan(ctx, "ExtensionManagerClient.ExtensionsContext")
+	defer span.End()
+
 	if err := c.lock.Lock(ctx); err != nil {
 		return nil, err
 	}
@@ -135,6 +142,9 @@ func (c *ExtensionManagerClient) RegisterExtension(info *osquery.InternalExtensi
 
 // RegisterExtensionContext registers the extension plugins with the osquery process.
 func (c *ExtensionManagerClient) RegisterExtensionContext(ctx context.Context, info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+	ctx, span := traces.StartSpan(ctx, "ExtensionManagerClient.RegisterExtensionContext")
+	defer span.End()
+
 	if err := c.lock.Lock(ctx); err != nil {
 		return nil, err
 	}
@@ -149,6 +159,9 @@ func (c *ExtensionManagerClient) DeregisterExtension(uuid osquery.ExtensionRoute
 
 // DeregisterExtensionContext de-registers the extension plugins with the osquery process.
 func (c *ExtensionManagerClient) DeregisterExtensionContext(ctx context.Context, uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error) {
+	ctx, span := traces.StartSpan(ctx, "ExtensionManagerClient.DeregisterExtensionContext")
+	defer span.End()
+
 	if err := c.lock.Lock(ctx); err != nil {
 		return nil, err
 	}
@@ -163,6 +176,9 @@ func (c *ExtensionManagerClient) Options() (osquery.InternalOptionList, error) {
 
 // OptionsContext requests the list of bootstrap or configuration options.
 func (c *ExtensionManagerClient) OptionsContext(ctx context.Context) (osquery.InternalOptionList, error) {
+	ctx, span := traces.StartSpan(ctx, "ExtensionManagerClient.OptionsContext")
+	defer span.End()
+
 	if err := c.lock.Lock(ctx); err != nil {
 		return nil, err
 	}
@@ -181,6 +197,9 @@ func (c *ExtensionManagerClient) Query(sql string) (*osquery.ExtensionResponse, 
 // Consider using the QueryRow or QueryRows helpers for a more friendly
 // interface.
 func (c *ExtensionManagerClient) QueryContext(ctx context.Context, sql string) (*osquery.ExtensionResponse, error) {
+	ctx, span := traces.StartSpan(ctx, "ExtensionManagerClient.QueryContext")
+	defer span.End()
+
 	if err := c.lock.Lock(ctx); err != nil {
 		return nil, err
 	}
@@ -199,6 +218,9 @@ func (c *ExtensionManagerClient) QueryRows(sql string) ([]map[string]string, err
 // results. It handles checking both the transport level errors and the osquery
 // internal errors by returning a normal Go error type.
 func (c *ExtensionManagerClient) QueryRowsContext(ctx context.Context, sql string) ([]map[string]string, error) {
+	ctx, span := traces.StartSpan(ctx, "ExtensionManagerClient.QueryRowsContext")
+	defer span.End()
+
 	res, err := c.QueryContext(ctx, sql)
 	if err != nil {
 		return nil, errors.Wrap(err, "transport error in query")
@@ -222,6 +244,9 @@ func (c *ExtensionManagerClient) QueryRow(sql string) (map[string]string, error)
 // QueryRowContext behaves similarly to QueryRows, but it returns an error if the
 // query does not return exactly one row.
 func (c *ExtensionManagerClient) QueryRowContext(ctx context.Context, sql string) (map[string]string, error) {
+	ctx, span := traces.StartSpan(ctx, "ExtensionManagerClient.QueryRowContext")
+	defer span.End()
+
 	res, err := c.QueryRowsContext(ctx, sql)
 	if err != nil {
 		return nil, err
@@ -239,6 +264,9 @@ func (c *ExtensionManagerClient) GetQueryColumns(sql string) (*osquery.Extension
 
 // GetQueryColumnsContext requests the columns returned by the parsed query.
 func (c *ExtensionManagerClient) GetQueryColumnsContext(ctx context.Context, sql string) (*osquery.ExtensionResponse, error) {
+	ctx, span := traces.StartSpan(ctx, "ExtensionManagerClient.GetQueryColumnsContext")
+	defer span.End()
+
 	if err := c.lock.Lock(ctx); err != nil {
 		return nil, err
 	}
