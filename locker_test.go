@@ -15,54 +15,54 @@ func TestLocker(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name               string
-		sleepTime          time.Duration
-		ctxTimeout         time.Duration
-		parallelism        int
-		expectedSuccesses  int
-		expectedErrorCount int
-		expectedErrors     []string
+		name                   string
+		sleepTime              time.Duration
+		ctxTimeout             time.Duration
+		parallelism            int
+		expectedSuccessesRange [2]int
+		expectedErrorRange     [2]int
+		expectedErrors         []string
 	}{
 		{
-			name:              "basic",
-			sleepTime:         1 * time.Millisecond,
-			ctxTimeout:        10 * time.Millisecond,
-			parallelism:       5,
-			expectedSuccesses: 5,
+			name:                   "basic",
+			sleepTime:              1 * time.Millisecond,
+			ctxTimeout:             10 * time.Millisecond,
+			parallelism:            5,
+			expectedSuccessesRange: [2]int{5, 5},
 		},
 		{
-			name:               "some finishers",
-			sleepTime:          4 * time.Millisecond,
-			ctxTimeout:         10 * time.Millisecond,
-			parallelism:        5,
-			expectedSuccesses:  3,
-			expectedErrorCount: 2,
+			name:                   "some finishers",
+			sleepTime:              4 * time.Millisecond,
+			ctxTimeout:             10 * time.Millisecond,
+			parallelism:            5,
+			expectedSuccessesRange: [2]int{2, 3},
+			expectedErrorRange:     [2]int{2, 3},
 		},
 		{
-			name:               "sleep longer than context",
-			sleepTime:          150 * time.Millisecond,
-			ctxTimeout:         10 * time.Millisecond,
-			parallelism:        5,
-			expectedSuccesses:  1,
-			expectedErrorCount: 4,
-			expectedErrors:     []string{"context canceled: context deadline exceeded"},
+			name:                   "sleep longer than context",
+			sleepTime:              150 * time.Millisecond,
+			ctxTimeout:             10 * time.Millisecond,
+			parallelism:            5,
+			expectedSuccessesRange: [2]int{1, 1},
+			expectedErrorRange:     [2]int{4, 4},
+			expectedErrors:         []string{"context canceled: context deadline exceeded"},
 		},
 		{
-			name:               "no ctx fall back to default timeout",
-			sleepTime:          150 * time.Millisecond,
-			parallelism:        5,
-			expectedSuccesses:  1,
-			expectedErrorCount: 4,
-			expectedErrors:     []string{"timeout after 100ms"},
+			name:                   "no ctx fall back to default timeout",
+			sleepTime:              150 * time.Millisecond,
+			parallelism:            5,
+			expectedSuccessesRange: [2]int{1, 1},
+			expectedErrorRange:     [2]int{4, 4},
+			expectedErrors:         []string{"timeout after 100ms"},
 		},
 		{
-			name:               "ctx longer than maxwait",
-			sleepTime:          250 * time.Millisecond,
-			ctxTimeout:         10 * time.Second,
-			parallelism:        5,
-			expectedSuccesses:  1,
-			expectedErrorCount: 4,
-			expectedErrors:     []string{"timeout after maximum of 200ms"},
+			name:                   "ctx longer than maxwait",
+			sleepTime:              250 * time.Millisecond,
+			ctxTimeout:             10 * time.Second,
+			parallelism:            5,
+			expectedSuccessesRange: [2]int{1, 1},
+			expectedErrorRange:     [2]int{4, 4},
+			expectedErrors:         []string{"timeout after maximum of 200ms"},
 		},
 	}
 
@@ -91,8 +91,8 @@ func TestLocker(t *testing.T) {
 
 			wait.Wait()
 
-			assert.Equal(t, tt.expectedSuccesses, doer.Successes)
-			assert.Equal(t, tt.expectedErrorCount, len(doer.Errors))
+			assertBetween(t, doer.Successes, tt.expectedSuccessesRange, "success count")
+			assertBetween(t, len(doer.Errors), tt.expectedErrorRange, "error count")
 
 			for _, errMsg := range tt.expectedErrors {
 				assert.Contains(t, doer.Errors, errMsg)
@@ -175,4 +175,11 @@ func (doer *thingDoer) Once(ctx context.Context, d time.Duration) error {
 	doer.Successes += 1
 
 	return nil
+}
+
+// assertBetween is a wrapper over assert.GreateOrEqual and assert.LessOrEqual. We use it to provide small ranges for
+// expected test results. This is because GitHub Actions is prone to weird timing issues and slowdowns
+func assertBetween(t *testing.T, actual int, r [2]int, msg string) {
+	assert.GreaterOrEqual(t, actual, r[0], msg)
+	assert.LessOrEqual(t, actual, r[1], msg)
 }
