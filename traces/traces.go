@@ -14,9 +14,20 @@ const (
 	osqueryGoVersion   = "0.0.0"
 )
 
+// By default, use the global tracer provider
+var tracerProvider = otel.GetTracerProvider()
+
+// SetTracerProvider allows consuming libraries to set a custom/non-global tracer provider.
+func SetTracerProvider(tp trace.TracerProvider) {
+	tracerProvider = tp
+}
+
 // OsqueryGoTracer provides a tracer with a standardized name and version.
+// It should be used to start a span that requires `SpanStartOption`s that are
+// not supported by `StartSpan` below -- i.e., any `SpanStartOption` besides
+// `WithAttributes`.
 func OsqueryGoTracer() trace.Tracer {
-	return otel.Tracer(instrumentationPkg, trace.WithInstrumentationVersion(osqueryGoVersion))
+	return tracerProvider.Tracer(instrumentationPkg, trace.WithInstrumentationVersion(osqueryGoVersion))
 }
 
 // StartSpan is a wrapper around trace.Tracer.Start that simplifies passing in span attributes.
