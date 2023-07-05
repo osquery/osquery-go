@@ -3,16 +3,43 @@ package traces
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
-const (
-	instrumentationPkg = "github.com/osquery/osquery-go"
-	osqueryGoVersion   = "0.0.0"
-)
+const instrumentationPkg = "github.com/osquery/osquery-go"
+
+var internalVersion string
+
+// osqueryGoVersion returns the version of osquery-go, to be used to set the instrumentation
+// version `otel.scope.version`. It looks through build info to determine the current version
+// of the osquery-go package. Once determined, it saves the version to avoid performing this
+// work again. If the version cannot be determined, the version defaults to the current version,
+// which is hardcoded.
+func osqueryGoVersion() string {
+	if internalVersion != "" {
+		return internalVersion
+	}
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, dep := range info.Deps {
+			if dep == nil {
+				continue
+			}
+			if dep.Path == instrumentationPkg {
+				internalVersion = dep.Version
+				return internalVersion
+			}
+		}
+	}
+
+	// Couldn't get the version from runtime build info -- save and return 0.0.0,
+	// which is the current osquery-go version.
+	internalVersion = "0.0.0"
+	return internalVersion
+}
 
 // By default, use the global tracer provider
 var tracerProvider = otel.GetTracerProvider()
@@ -27,7 +54,7 @@ func SetTracerProvider(tp trace.TracerProvider) {
 // not supported by `StartSpan` below -- i.e., any `SpanStartOption` besides
 // `WithAttributes`.
 func OsqueryGoTracer() trace.Tracer {
-	return tracerProvider.Tracer(instrumentationPkg, trace.WithInstrumentationVersion(osqueryGoVersion))
+	return tracerProvider.Tracer(instrumentationPkg, trace.WithInstrumentationVersion(osqueryGoVersion()))
 }
 
 // StartSpan is a wrapper around trace.Tracer.Start that simplifies passing in span attributes.
