@@ -1,6 +1,5 @@
 # osquery-go
 
-[![CircleCI](https://circleci.com/gh/osquery/osquery-go/tree/master.svg?style=svg)](https://circleci.com/gh/osquery/osquery-go/tree/master)
 [![GoDoc](https://godoc.org/github.com/osquery/osquery-go?status.svg)](http://godoc.org/github.com/osquery/osquery-go)
 
 [osquery](https://github.com/facebook/osquery) exposes an operating system as a high-performance relational database. This allows you to write SQL-based queries to explore operating system data. With osquery, SQL tables represent abstract concepts such as running processes, loaded kernel modules, open network connections, browser plugins, hardware events or file hashes.
