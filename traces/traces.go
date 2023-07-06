@@ -1,3 +1,5 @@
+// Package traces allows for instrumenting osquery-go with OpenTelemetry traces.
+// Unless the consuming application specifically configures a trace exporter, all tracing is a no-op.
 package traces
 
 import (
@@ -41,7 +43,7 @@ func osqueryGoVersion() string {
 	return internalVersion
 }
 
-// By default, use the global tracer provider
+// By default, use the global tracer provider, which is a no-op provider.
 var tracerProvider = otel.GetTracerProvider()
 
 // SetTracerProvider allows consuming libraries to set a custom/non-global tracer provider.
