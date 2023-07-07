@@ -14,17 +14,17 @@ import (
 
 const instrumentationPkg = "github.com/osquery/osquery-go"
 
-var internalVersion string
+var (
+	internalVersion string // provides the instrumentation version for attribute `otel.scope.version`
+	tracerProvider  trace.TracerProvider
+)
 
-// osqueryGoVersion returns the version of osquery-go, to be used to set the instrumentation
-// version `otel.scope.version`. It looks through build info to determine the current version
-// of the osquery-go package. Once determined, it saves the version to avoid performing this
-// work again. If the version cannot be determined, the version defaults to the current version,
-// which is hardcoded.
-func osqueryGoVersion() string {
-	if internalVersion != "" {
-		return internalVersion
-	}
+// init sets `internalVersion` and a default tracer provider.
+func init() {
+	// By default, use the global tracer provider, which is a no-op provider.
+	tracerProvider = otel.GetTracerProvider()
+
+	// Look through build info to determine the current version of the osquery-go package.
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, dep := range info.Deps {
 			if dep == nil {
@@ -32,19 +32,15 @@ func osqueryGoVersion() string {
 			}
 			if dep.Path == instrumentationPkg {
 				internalVersion = dep.Version
-				return internalVersion
+				return
 			}
 		}
 	}
 
-	// Couldn't get the version from runtime build info -- save and return 0.0.0,
+	// Couldn't get the version from runtime build info -- save 0.0.0,
 	// which is the current osquery-go version.
 	internalVersion = "0.0.0"
-	return internalVersion
 }
-
-// By default, use the global tracer provider, which is a no-op provider.
-var tracerProvider = otel.GetTracerProvider()
 
 // SetTracerProvider allows consuming libraries to set a custom/non-global tracer provider.
 func SetTracerProvider(tp trace.TracerProvider) {
@@ -56,7 +52,7 @@ func SetTracerProvider(tp trace.TracerProvider) {
 // not supported by `StartSpan` below -- i.e., any `SpanStartOption` besides
 // `WithAttributes`.
 func OsqueryGoTracer() trace.Tracer {
-	return tracerProvider.Tracer(instrumentationPkg, trace.WithInstrumentationVersion(osqueryGoVersion()))
+	return tracerProvider.Tracer(instrumentationPkg, trace.WithInstrumentationVersion(internalVersion))
 }
 
 // StartSpan is a wrapper around trace.Tracer.Start that simplifies passing in span attributes.
