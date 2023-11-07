@@ -255,12 +255,16 @@ func (s *ExtensionManagerServer) Run() error {
 		for {
 			time.Sleep(s.pingInterval)
 
+			s.mutex.Lock()
+			serverClient := s.serverClient
+			s.mutex.Unlock()
+
 			// can't ping if s.Shutdown has already happened
-			if s.serverClient == nil {
+			if serverClient == nil {
 				break
 			}
 
-			status, err := s.serverClient.Ping()
+			status, err := serverClient.Ping()
 			if err != nil {
 				errc <- errors.Wrap(err, "extension ping failed")
 				break
