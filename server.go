@@ -322,6 +322,7 @@ func (s *ExtensionManagerServer) Call(ctx context.Context, registry string, item
 func (s *ExtensionManagerServer) Shutdown(ctx context.Context) (err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
 	stat, err := s.serverClient.DeregisterExtension(s.uuid)
 	err = errors.Wrap(err, "deregistering extension")
 	if err == nil && stat.Code != 0 {
@@ -333,7 +334,7 @@ func (s *ExtensionManagerServer) Shutdown(ctx context.Context) (err error) {
 		s.server = nil
 		// Stop the server asynchronously so that the current request
 		// can complete. Otherwise, this is vulnerable to deadlock if a
-		// shutdown request is being processed when shutdown is
+		// shutdown request is being processed when Shutdown is
 		// explicitly called.
 		go func() {
 			server.Stop()
