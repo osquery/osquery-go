@@ -256,12 +256,16 @@ func (s *ExtensionManagerServer) Run() error {
 		for {
 			time.Sleep(s.pingInterval)
 
+			s.mutex.Lock()
+			serverClient := s.serverClient
+			s.mutex.Unlock()
+
 			// can't ping if s.Shutdown has already happened
-			if s.serverClient == nil {
+			if serverClient == nil {
 				break
 			}
 
-			status, err := s.serverClient.Ping()
+			status, err := serverClient.Ping()
 			if err != nil {
 				errc <- errors.Wrap(err, "extension ping failed")
 				break
@@ -323,12 +327,15 @@ func (s *ExtensionManagerServer) Shutdown(ctx context.Context) (err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	stat, err := s.serverClient.DeregisterExtension(s.uuid)
-	err = errors.Wrap(err, "deregistering extension")
-	if err == nil && stat.Code != 0 {
-		err = errors.Errorf("status %d deregistering extension: %s", stat.Code, stat.Message)
+	if s.serverClient != nil {
+		var stat *osquery.ExtensionStatus
+		stat, err = s.serverClient.DeregisterExtension(s.uuid)
+		err = errors.Wrap(err, "deregistering extension")
+		if err == nil && stat.Code != 0 {
+			err = errors.Errorf("status %d deregistering extension: %s", stat.Code, stat.Message)
+		}
 	}
-	s.serverClient.Close()
+
 	if s.server != nil {
 		server := s.server
 		s.server = nil
