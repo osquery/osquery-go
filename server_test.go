@@ -162,8 +162,12 @@ func testShutdownDeadlock(t *testing.T, uuid int) {
 	for !opened && attempt < 10 {
 		transport = thrift.NewTSocketFromAddrTimeout(addr, timeout, timeout)
 		err = transport.Open()
-		opened = err == nil
 		attempt++
+		if err != nil {
+			time.Sleep(1 * time.Second)
+		} else {
+			opened = true
+		}
 	}
 	require.NoError(t, err)
 	client := osquery.NewExtensionManagerClientFactory(transport,
