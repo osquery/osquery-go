@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/osquery/osquery-go/gen/osquery"
+	"github.com/osquery/osquery-go/traces"
 )
 
 // GetQueriesResult contains the information about which queries the
@@ -47,6 +48,8 @@ type Result struct {
 	Rows []map[string]string `json:"rows"`
 	// QueryStats are the stats about the execution of the given query
 	QueryStats *Stats `json:"stats"`
+	// Message is the message string indicating the status of the query
+	Message string `json:"message"`
 }
 
 // WriteResultsFunc writes the results of the executed distributed queries. The
@@ -142,6 +145,7 @@ type ResultsStruct struct {
 	Queries  map[string][]map[string]string `json:"queries"`
 	Statuses map[string]OsqueryInt          `json:"statuses"`
 	Stats    map[string]Stats               `json:"stats"`
+	Messages map[string]string              `json:"messages"`
 }
 
 // Stats holds performance stats about the execution of a given query.
@@ -157,12 +161,14 @@ func (rs *ResultsStruct) UnmarshalJSON(buff []byte) error {
 	emptyRow := []map[string]string{}
 	rs.Queries = make(map[string][]map[string]string)
 	rs.Statuses = make(map[string]OsqueryInt)
+	rs.Messages = make(map[string]string)
 	// Queries can be []map[string]string OR an empty string
 	// so we need to deal with an interface to accommodate two types
 	intermediate := struct {
 		Queries  map[string]interface{} `json:"queries"`
 		Statuses map[string]OsqueryInt  `json:"statuses"`
 		Stats    map[string]Stats       `json:"stats"`
+		Messages map[string]string      `json:"messages"`
 	}{}
 	if err := json.Unmarshal(buff, &intermediate); err != nil {
 		return err
@@ -191,8 +197,9 @@ func (rs *ResultsStruct) UnmarshalJSON(buff []byte) error {
 			return fmt.Errorf("results for %q unknown type", queryName)
 		}
 	}
-	// Stats don't require any format changes
+	// Stats and messages don't require any format changes
 	rs.Stats = intermediate.Stats
+	rs.Messages = intermediate.Messages
 	return nil
 }
 
@@ -207,6 +214,9 @@ func (rs *ResultsStruct) toResults() ([]Result, error) {
 		}
 		if stats, ok := rs.Stats[queryName]; ok {
 			result.QueryStats = &stats
+		}
+		if msg, ok := rs.Messages[queryName]; ok {
+			result.Message = msg
 		}
 		results = append(results, result)
 	}
@@ -234,6 +244,9 @@ func convertRows(rows []interface{}) ([]map[string]string, error) {
 }
 
 func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
+	ctx, span := traces.StartSpan(ctx, "Distributed.Call", "action", request[requestActionKey])
+	defer span.End()
+
 	switch request[requestActionKey] {
 	case getQueriesAction:
 		queries, err := t.getQueries(ctx)

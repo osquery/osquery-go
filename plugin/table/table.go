@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/osquery/osquery-go/gen/osquery"
+	"github.com/osquery/osquery-go/traces"
 	"github.com/pkg/errors"
 )
 
@@ -52,6 +53,9 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 }
 
 func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
+	ctx, span := traces.StartSpan(ctx, "Table.Call", "action", request["action"])
+	defer span.End()
+
 	ok := osquery.ExtensionStatus{Code: 0, Message: "OK"}
 	switch request["action"] {
 	case "generate":

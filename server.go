@@ -9,6 +9,7 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 
 	"github.com/osquery/osquery-go/gen/osquery"
+	"github.com/osquery/osquery-go/traces"
 	"github.com/osquery/osquery-go/transport"
 	"github.com/pkg/errors"
 )
@@ -291,6 +292,12 @@ func (s *ExtensionManagerServer) Ping(ctx context.Context) (*osquery.ExtensionSt
 // Call routes a call from the osquery process to the appropriate registered
 // plugin.
 func (s *ExtensionManagerServer) Call(ctx context.Context, registry string, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
+	ctx, span := traces.StartSpan(ctx, "ExtensionManagerServer.Call",
+		"registry", registry,
+		"item", item,
+	)
+	defer span.End()
+
 	subreg, ok := s.registry[registry]
 	if !ok {
 		return &osquery.ExtensionResponse{
@@ -311,7 +318,7 @@ func (s *ExtensionManagerServer) Call(ctx context.Context, registry string, item
 		}, nil
 	}
 
-	response := plugin.Call(context.Background(), request)
+	response := plugin.Call(ctx, request)
 	return &response, nil
 }
 
@@ -334,7 +341,7 @@ func (s *ExtensionManagerServer) Shutdown(ctx context.Context) (err error) {
 		s.server = nil
 		// Stop the server asynchronously so that the current request
 		// can complete. Otherwise, this is vulnerable to deadlock if a
-		// shutdown request is being processed when shutdown is
+		// shutdown request is being processed when Shutdown is
 		// explicitly called.
 		go func() {
 			server.Stop()
