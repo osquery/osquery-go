@@ -196,6 +196,10 @@ func (s *ExtensionManagerServer) Start() error {
 	err := func() error {
 		s.mutex.Lock()
 		defer s.mutex.Unlock()
+		// check after the lock the serverClient is present. It could have gone away on very short restart loops
+		if s.serverClient == nil {
+			return errors.New("cannot start, shutdown in progress")
+		}
 		registry := s.genRegistry()
 
 		stat, err := s.serverClient.RegisterExtension(
@@ -278,9 +282,7 @@ func (s *ExtensionManagerServer) Run() error {
 	}()
 
 	err := <-errc
-	if err := s.Shutdown(context.Background()); err != nil {
-		return err
-	}
+	_ = s.Shutdown(context.Background())
 	return err
 }
 
