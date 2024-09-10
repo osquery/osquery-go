@@ -1,8 +1,8 @@
 module github.com/osquery/osquery-go
 
 require (
-	github.com/Microsoft/go-winio v0.4.9
-	github.com/apache/thrift v0.16.0
+	github.com/Microsoft/go-winio v0.6.2
+	github.com/apache/thrift v0.20.0
 	github.com/pkg/errors v0.8.0
 	github.com/stretchr/testify v1.8.3
 	go.opentelemetry.io/otel v1.16.0
@@ -15,8 +15,8 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.opentelemetry.io/otel/metric v1.16.0 // indirect
-	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-go 1.19
+go 1.21
