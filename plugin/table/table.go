@@ -54,7 +54,7 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 }
 
 func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
-	ctx, span := traces.StartSpan(ctx, "Table.Call", "action", request["action"], "table_name", t.name)
+	ctx, span := traces.StartSpan(ctx, t.name, "action", request["action"], "table_name", t.name)
 	defer span.End()
 
 	ok := osquery.ExtensionStatus{Code: 0, Message: "OK"}
