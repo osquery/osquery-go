@@ -70,7 +70,7 @@ func NewColumn(name string, ctype ColumnType, opts ...ColumnOpt) ColumnDefinitio
 }
 
 // IndexColumn is a functional argument to declare this as an indexed
-// column. Depending on impmelentation, this can significantly change
+// column. Depending on implementation, this can significantly change
 // performance.  See osquery source code for more information.
 func IndexColumn() ColumnOpt {
 	return func(cd *ColumnDefinition) {
