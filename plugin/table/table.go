@@ -4,6 +4,7 @@ package table
 import (
 	"context"
 	"encoding/json"
+	"runtime"
 	"strconv"
 
 	"github.com/osquery/osquery-go/gen/osquery"
@@ -25,6 +26,7 @@ type Plugin struct {
 	url         string
 	notes       string
 	examples    []string
+	platforms   []platformName
 }
 
 type TableOpt func(*Plugin)
@@ -62,6 +64,21 @@ func NewPlugin(name string, columns []ColumnDefinition, gen GenerateFunc, opts .
 
 	for _, opt := range opts {
 		opt(tbl)
+	}
+
+	// If the table platform isn't set, use runtime.GOOS to determine it
+	if len(tbl.platforms) == 0 {
+		switch runtime.GOOS {
+		case "darwin":
+			tbl.platforms = []platformName{DarwinPlatform}
+		case "windows":
+			tbl.platforms = []platformName{WindowsPlatform}
+		case "linux":
+			tbl.platforms = []platformName{LinuxPlatform}
+		default:
+			// Historic function signature has no error, so there's not much to do
+			// for an unknown platform.
+		}
 	}
 
 	return tbl
@@ -165,6 +182,14 @@ type Constraint struct {
 	Operator   Operator
 	Expression string
 }
+
+type platformName string
+
+const (
+	DarwinPlatform  platformName = "darwin"
+	WindowsPlatform platformName = "windows"
+	LinuxPlatform   platformName = "linux"
+)
 
 // Operator is an enum of the osquery operators.
 type Operator int

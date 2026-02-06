@@ -10,7 +10,7 @@ type osqueryTableSpec struct {
 	Name        string             `json:"name"`
 	Description string             `json:"description"`
 	Url         string             `json:"url"`
-	Platforms   []string           `json:"platforms"`
+	Platforms   []platformName     `json:"platforms"`
 	Evented     bool               `json:"evented"`
 	Cacheable   bool               `json:"cacheable"`
 	Notes       string             `json:"notes,omitempty"`
@@ -24,7 +24,7 @@ func (t *Plugin) Spec() ([]byte, error) {
 		Name:        t.name,
 		Description: t.description,
 		Url:         t.url,
-		Platforms:   []string{"blar"},
+		Platforms:   t.platforms,
 		Notes:       t.notes,
 		Examples:    t.examples,
 		Columns:     t.columns,
