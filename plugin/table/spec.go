@@ -1,12 +1,8 @@
 package table
 
-import (
-	"encoding/json"
-
-	"github.com/pkg/errors"
-)
-
-type osqueryTableSpec struct {
+// OsqueryTableSpec is a struct compatible with the osquery spec files. It
+// can be marshalled to json if desired.
+type OsqueryTableSpec struct {
 	Name        string             `json:"name"`
 	Description string             `json:"description"`
 	Url         string             `json:"url"`
@@ -18,9 +14,9 @@ type osqueryTableSpec struct {
 	Columns     []ColumnDefinition `json:"columns"`
 }
 
-func (t *Plugin) Spec() ([]byte, error) {
+func (t *Plugin) Spec() OsqueryTableSpec {
 	// FIXME: the columndefinition type is upcased, is that an issue?
-	tableSpec := osqueryTableSpec{
+	return OsqueryTableSpec{
 		Name:        t.name,
 		Description: t.description,
 		Url:         t.url,
@@ -29,9 +25,4 @@ func (t *Plugin) Spec() ([]byte, error) {
 		Examples:    t.examples,
 		Columns:     t.columns,
 	}
-	specBytes, err := json.MarshalIndent(tableSpec, "", "  ")
-	if err != nil {
-		return nil, errors.Wrap(err, "marshalling")
-	}
-	return specBytes, nil
 }

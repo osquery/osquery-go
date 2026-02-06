@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -20,17 +21,17 @@ var (
 )
 
 func main() {
-	tbl := table.NewPlugin("example_table", ExampleColumns(), ExampleGenerate, table.WithDescription("A simple example table"))
-
 	flag.Parse()
 
+	tbl := table.NewPlugin("example_table", ExampleColumns(), ExampleGenerate, table.WithDescription("A simple example table"))
+
 	if *spec {
-		specBytes, err := tbl.Spec()
+		tableSpec, err := json.MarshalIndent(tbl.Spec(), "", "  ")
 		if err != nil {
-			log.Fatalf("Error generating spec: %s\n", err)
+			log.Fatalf("Error marshalling spec: %s\n", err)
 		}
 
-		fmt.Printf("%s\n", specBytes)
+		fmt.Printf("%s\n", tableSpec)
 		os.Exit(0)
 	}
 
