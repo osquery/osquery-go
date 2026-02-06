@@ -55,6 +55,11 @@ func WithExample(example string) TableOpt {
 	}
 }
 
+func WithPlatforms(platforms ...platformName) TableOpt {
+	return func(tbl *Plugin) {
+		tbl.platforms = platforms
+	}
+}
 func NewPlugin(name string, columns []ColumnDefinition, gen GenerateFunc, opts ...TableOpt) *Plugin {
 	tbl := &Plugin{
 		name:     name,
