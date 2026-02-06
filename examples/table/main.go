@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/osquery/osquery-go"
@@ -14,10 +16,24 @@ var (
 	socket   = flag.String("socket", "", "Path to the extensions UNIX domain socket")
 	timeout  = flag.Int("timeout", 3, "Seconds to wait for autoloaded extensions")
 	interval = flag.Int("interval", 3, "Seconds delay between connectivity checks")
+	spec     = flag.Bool("spec", false, "Don't run as a plugin, instead print the table spec")
 )
 
 func main() {
+	tbl := table.NewPlugin("example_table", ExampleColumns(), ExampleGenerate, table.WithDescription("A simple example table"))
+
 	flag.Parse()
+
+	if *spec {
+		specBytes, err := tbl.Spec()
+		if err != nil {
+			log.Fatalf("Error generating spec: %s\n", err)
+		}
+
+		fmt.Printf("%s\n", specBytes)
+		os.Exit(0)
+	}
+
 	if *socket == "" {
 		log.Fatalln("Missing required --socket argument")
 	}
@@ -38,7 +54,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}
-	server.RegisterPlugin(table.NewPlugin("example_table", ExampleColumns(), ExampleGenerate))
+	server.RegisterPlugin(tbl)
 	if err := server.Run(); err != nil {
 		log.Fatal(err)
 	}
@@ -46,7 +62,7 @@ func main() {
 
 func ExampleColumns() []table.ColumnDefinition {
 	return []table.ColumnDefinition{
-		table.TextColumn("text"),
+		table.TextColumn("text", table.ColumnDescription("Some text")),
 		table.IntegerColumn("integer"),
 		table.BigIntColumn("big_int"),
 		table.DoubleColumn("double"),

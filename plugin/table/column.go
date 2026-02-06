@@ -7,6 +7,7 @@ type ColumnDefinition struct {
 	Name        string     `json:"name,omitempty"`
 	Type        ColumnType `json:"type,omitempty"`
 	Description string     `json:"description,omitempty"`
+	Notes       string     `json:"notes,omitempty"`
 
 	// Options from https://github.com/osquery/osquery/blob/master/osquery/core/sql/column.h#L37
 	Index      bool `json:"index"`
@@ -111,7 +112,6 @@ func HiddenColumn() ColumnOpt {
 	return func(cd *ColumnDefinition) {
 		cd.Hidden = true
 	}
-
 }
 
 // ColumnDescription sets the column description. This is not

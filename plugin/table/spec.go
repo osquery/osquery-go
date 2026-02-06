@@ -13,8 +13,8 @@ type osqueryTableSpec struct {
 	Platforms   []string           `json:"platforms"`
 	Evented     bool               `json:"evented"`
 	Cacheable   bool               `json:"cacheable"`
-	Notes       string             `json:"notes",omitempty`
-	Examples    []string           `json:"examples",omitempty`
+	Notes       string             `json:"notes,omitempty"`
+	Examples    []string           `json:"examples,omitempty"`
 	Columns     []ColumnDefinition `json:"columns"`
 }
 
