@@ -4,8 +4,8 @@ package table
 // plugin. Name and Type are mandatory. Prefer using the *Column helpers to
 // create ColumnDefinition structs.
 type ColumnDefinition struct {
-	Name        string     `json:"name,omitempty"`
-	Type        ColumnType `json:"type,omitempty"`
+	Name        string     `json:"name"`
+	Type        ColumnType `json:"type"`
 	Description string     `json:"description,omitempty"`
 	Notes       string     `json:"notes,omitempty"`
 
