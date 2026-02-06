@@ -1,5 +1,10 @@
 package table
 
+import (
+	"encoding/json"
+	"strings"
+)
+
 // ColumnDefinition defines the relevant information for a column in a table
 // plugin. Name and Type are mandatory. Prefer using the *Column helpers to
 // create ColumnDefinition structs.
@@ -31,6 +36,17 @@ const (
 	ColumnTypeDouble                    = "DOUBLE"
 	ColumnTypeBlob                      = "BLOB"
 )
+
+// jsonString returns the value used when marshaling ColumnType to JSON
+// (lowercase, spaces as underscores).
+func (ct ColumnType) jsonString() string {
+	return strings.ReplaceAll(strings.ToLower(string(ct)), " ", "_")
+}
+
+// MarshalJSON implements json.Marshaler.
+func (ct ColumnType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(ct.jsonString())
+}
 
 type ColumnOpt func(*ColumnDefinition)
 
@@ -94,7 +110,6 @@ func AdditionalColumn() ColumnOpt {
 	return func(cd *ColumnDefinition) {
 		cd.Additional = true
 	}
-
 }
 
 // OptimizedColumn is a functional argument that sets this as an

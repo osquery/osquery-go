@@ -15,7 +15,6 @@ type OsqueryTableSpec struct {
 }
 
 func (t *Plugin) Spec() OsqueryTableSpec {
-	// FIXME: the columndefinition type is upcased, is that an issue?
 	return OsqueryTableSpec{
 		Name:        t.name,
 		Description: t.description,
