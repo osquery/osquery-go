@@ -106,7 +106,7 @@ func OptimizedColumn() ColumnOpt {
 
 }
 
-// HiddenColumn is a functional argument that sets this as an
+// HiddenColumn is a functional argument that sets this as a
 // hidden column. This omits it from `select *` queries. See osquery source code for more information.
 func HiddenColumn() ColumnOpt {
 	return func(cd *ColumnDefinition) {
