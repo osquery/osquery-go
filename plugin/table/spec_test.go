@@ -27,7 +27,9 @@ func TestTable_Spec(t *testing.T) {
   "evented": false,
   "columns":[
     { "name": "simple_text", "type": "TEXT", "index": false, "required": false, "additional": false, "optimized": false, "hidden": false }
-  ]
+  ],
+  "description": "",
+  "url": ""
 }`,
 		},
 	}
@@ -42,7 +44,7 @@ func TestTable_Spec(t *testing.T) {
 	}
 }
 
-func helperJSONEqVal(t *testing.T, expected string, actual string, msgAndArgs ...interface{}) {
+func helperJSONEqVal(t *testing.T, expected string, actual []byte, msgAndArgs ...interface{}) {
 	var expectedJSONAsInterface, actualJSONAsInterface interface{}
 
 	if err := json.Unmarshal([]byte(expected), &expectedJSONAsInterface); err != nil {
@@ -50,7 +52,7 @@ func helperJSONEqVal(t *testing.T, expected string, actual string, msgAndArgs ..
 		return
 	}
 
-	if err := json.Unmarshal([]byte(actual), &actualJSONAsInterface); err != nil {
+	if err := json.Unmarshal(actual, &actualJSONAsInterface); err != nil {
 		require.Fail(t, fmt.Sprintf("Input ('%s') needs to be valid json.\nJSON parsing error: '%s'", actual, err.Error()), msgAndArgs...)
 		return
 	}

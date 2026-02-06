@@ -1,7 +1,7 @@
 package table
 
 // ColumnDefinition defines the relevant information for a column in a table
-// plugin. Both values are mandatory. Prefer using the *Column helpers to
+// plugin. Name and Type are mandatory. Prefer using the *Column helpers to
 // create ColumnDefinition structs.
 type ColumnDefinition struct {
 	Name        string     `json:"name,omitempty"`
@@ -66,7 +66,6 @@ func NewColumn(name string, ctype ColumnType, opts ...ColumnOpt) ColumnDefinitio
 	}
 
 	return cd
-
 }
 
 // IndexColumn is a functional argument to declare this as an indexed
@@ -130,6 +129,7 @@ func ColumnDescription(d string) ColumnOpt {
 func (c *ColumnDefinition) Options() uint8 {
 	optionsBitmask := uint8(0)
 
+	// We can skip the 0: default case, because it's what you get if nothing is set.
 	optionValues := map[uint8]bool{
 		1:  c.Index,
 		2:  c.Required,

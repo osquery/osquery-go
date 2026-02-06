@@ -18,17 +18,54 @@ import (
 type GenerateFunc func(ctx context.Context, queryContext QueryContext) ([]map[string]string, error)
 
 type Plugin struct {
-	name     string
-	columns  []ColumnDefinition
-	generate GenerateFunc
+	name        string
+	columns     []ColumnDefinition
+	generate    GenerateFunc
+	description string
+	url         string
+	notes       string
+	examples    []string
 }
 
-func NewPlugin(name string, columns []ColumnDefinition, gen GenerateFunc) *Plugin {
-	return &Plugin{
+type TableOpt func(*Plugin)
+
+func WithDescription(description string) TableOpt {
+	return func(tbl *Plugin) {
+		tbl.description = description
+	}
+}
+
+func WithURL(url string) TableOpt {
+	return func(tbl *Plugin) {
+		tbl.url = url
+	}
+}
+
+func WithNotes(notes string) TableOpt {
+	return func(tbl *Plugin) {
+		tbl.notes = notes
+	}
+}
+
+func WithExample(example string) TableOpt {
+	return func(tbl *Plugin) {
+		tbl.examples = append(tbl.examples, example)
+	}
+}
+
+func NewPlugin(name string, columns []ColumnDefinition, gen GenerateFunc, opts ...TableOpt) *Plugin {
+	tbl := &Plugin{
 		name:     name,
 		columns:  columns,
 		generate: gen,
 	}
+
+	for _, opt := range opts {
+		opt(tbl)
+	}
+
+	return tbl
+
 }
 
 func (t *Plugin) Name() string {
@@ -98,7 +135,6 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 			},
 		}
 	}
-
 }
 
 func (t *Plugin) Ping() osquery.ExtensionStatus {
@@ -133,7 +169,7 @@ type Constraint struct {
 // Operator is an enum of the osquery operators.
 type Operator int
 
-// The following operators are dfined in osquery tables.h.
+// The following operators are defined in osquery tables.h.
 const (
 	OperatorEquals              Operator = 2
 	OperatorGreaterThan                  = 4
@@ -145,6 +181,7 @@ const (
 	OperatorGlob                         = 66
 	OperatorRegexp                       = 67
 	OperatorUnique                       = 1
+	OperatorIn                           = 3
 )
 
 // The following types and functions exist for parsing of the queryContext
