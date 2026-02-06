@@ -31,30 +31,37 @@ type Plugin struct {
 
 type TableOpt func(*Plugin)
 
+// WithDescription sets the informational table description that will be used if table specs are generated
 func WithDescription(description string) TableOpt {
 	return func(tbl *Plugin) {
 		tbl.description = description
 	}
 }
 
+// WithURL sets the informational table URL that will be used if table specs are generated
 func WithURL(url string) TableOpt {
 	return func(tbl *Plugin) {
 		tbl.url = url
 	}
 }
 
+// WithNotes sets the informational table notes that will be used if table specs are generated
 func WithNotes(notes string) TableOpt {
 	return func(tbl *Plugin) {
 		tbl.notes = notes
 	}
 }
 
+// WithExample adds an informational example that will be used if table specs are generated.
+// Can be used more than once.
 func WithExample(example string) TableOpt {
 	return func(tbl *Plugin) {
 		tbl.examples = append(tbl.examples, example)
 	}
 }
 
+// WithPlatform overrides the default of runtime.GOOS with a list of supported platforms. This
+// is used by the table spec generation.
 func WithPlatforms(platforms ...platformName) TableOpt {
 	return func(tbl *Plugin) {
 		tbl.platforms = platforms
