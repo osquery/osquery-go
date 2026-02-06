@@ -87,7 +87,6 @@ func NewPlugin(name string, columns []ColumnDefinition, gen GenerateFunc, opts .
 	}
 
 	return tbl
-
 }
 
 func (t *Plugin) Name() string {
