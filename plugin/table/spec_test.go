@@ -29,7 +29,8 @@ func TestTable_Spec(t *testing.T) {
     { "name": "simple_text", "type": "TEXT", "index": false, "required": false, "additional": false, "optimized": false, "hidden": false }
   ],
   "description": "",
-  "url": ""
+  "url": "",
+  "platforms": ["darwin"]
 }`,
 		},
 	}
@@ -38,6 +39,7 @@ func TestTable_Spec(t *testing.T) {
 
 	for _, tt := range tests {
 		testTable := NewPlugin(tt.name, tt.columns, mockGenerate)
+		testTable.platforms = []platformName{DarwinPlatform}
 		generatedSpec, err := testTable.Spec()
 		require.NoError(t, err, "generating spec for %s", tt.name)
 		helperJSONEqVal(t, tt.expected, generatedSpec, "spec for %s", tt.name)
