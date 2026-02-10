@@ -4,6 +4,7 @@ package table
 import (
 	"context"
 	"encoding/json"
+	"runtime"
 	"strconv"
 
 	"github.com/osquery/osquery-go/gen/osquery"
@@ -19,17 +20,81 @@ import (
 type GenerateFunc func(ctx context.Context, queryContext QueryContext) ([]map[string]string, error)
 
 type Plugin struct {
-	name     string
-	columns  []ColumnDefinition
-	generate GenerateFunc
+	name        string
+	columns     []ColumnDefinition
+	generate    GenerateFunc
+	description string
+	url         string
+	notes       string
+	examples    []string
+	platforms   []platformName
 }
 
-func NewPlugin(name string, columns []ColumnDefinition, gen GenerateFunc) *Plugin {
-	return &Plugin{
+type TableOpt func(*Plugin)
+
+// WithDescription sets the informational table description that will be used if table specs are generated
+func WithDescription(description string) TableOpt {
+	return func(tbl *Plugin) {
+		tbl.description = description
+	}
+}
+
+// WithURL sets the informational table URL that will be used if table specs are generated
+func WithURL(url string) TableOpt {
+	return func(tbl *Plugin) {
+		tbl.url = url
+	}
+}
+
+// WithNotes sets the informational table notes that will be used if table specs are generated
+func WithNotes(notes string) TableOpt {
+	return func(tbl *Plugin) {
+		tbl.notes = notes
+	}
+}
+
+// WithExample adds an informational example that will be used if table specs are generated.
+// Can be used more than once.
+func WithExample(example string) TableOpt {
+	return func(tbl *Plugin) {
+		tbl.examples = append(tbl.examples, example)
+	}
+}
+
+// WithPlatform overrides the default of runtime.GOOS with a list of supported platforms. This
+// is used by the table spec generation.
+func WithPlatforms(platforms ...platformName) TableOpt {
+	return func(tbl *Plugin) {
+		tbl.platforms = platforms
+	}
+}
+func NewPlugin(name string, columns []ColumnDefinition, gen GenerateFunc, opts ...TableOpt) *Plugin {
+	tbl := &Plugin{
 		name:     name,
 		columns:  columns,
 		generate: gen,
 	}
+
+	for _, opt := range opts {
+		opt(tbl)
+	}
+
+	// If the table platform isn't set, use runtime.GOOS to determine it
+	if len(tbl.platforms) == 0 {
+		switch runtime.GOOS {
+		case "darwin":
+			tbl.platforms = []platformName{DarwinPlatform}
+		case "windows":
+			tbl.platforms = []platformName{WindowsPlatform}
+		case "linux":
+			tbl.platforms = []platformName{LinuxPlatform}
+		default:
+			// Historic function signature has no error, so there's not much to do
+			// for an unknown platform.
+		}
+	}
+
+	return tbl
 }
 
 func (t *Plugin) Name() string {
@@ -47,7 +112,7 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 			"id":   "column",
 			"name": col.Name,
 			"type": string(col.Type),
-			"op":   "0",
+			"op":   strconv.FormatUint(uint64(col.Options()), 10),
 		})
 	}
 	return routes
@@ -101,7 +166,6 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 			},
 		}
 	}
-
 }
 
 func (t *Plugin) Ping() osquery.ExtensionStatus {
@@ -109,59 +173,6 @@ func (t *Plugin) Ping() osquery.ExtensionStatus {
 }
 
 func (t *Plugin) Shutdown() {}
-
-// ColumnDefinition defines the relevant information for a column in a table
-// plugin. Both values are mandatory. Prefer using the *Column helpers to
-// create ColumnDefinition structs.
-type ColumnDefinition struct {
-	Name string
-	Type ColumnType
-}
-
-// TextColumn is a helper for defining columns containing strings.
-func TextColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeText,
-	}
-}
-
-// IntegerColumn is a helper for defining columns containing integers.
-func IntegerColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeInteger,
-	}
-}
-
-// BigIntColumn is a helper for defining columns containing big integers.
-func BigIntColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeBigInt,
-	}
-}
-
-// DoubleColumn is a helper for defining columns containing floating point
-// values.
-func DoubleColumn(name string) ColumnDefinition {
-	return ColumnDefinition{
-		Name: name,
-		Type: ColumnTypeDouble,
-	}
-}
-
-// ColumnType is a strongly typed representation of the data type string for a
-// column definition. The named constants should be used.
-type ColumnType string
-
-// The following column types are defined in osquery tables.h.
-const (
-	ColumnTypeText    ColumnType = "TEXT"
-	ColumnTypeInteger            = "INTEGER"
-	ColumnTypeBigInt             = "BIGINT"
-	ColumnTypeDouble             = "DOUBLE"
-)
 
 // QueryContext contains the constraints from the WHERE clause of the query,
 // that can optionally be used to optimize the table generation. Note that the
@@ -186,10 +197,18 @@ type Constraint struct {
 	Expression string
 }
 
+type platformName string
+
+const (
+	DarwinPlatform  platformName = "darwin"
+	WindowsPlatform platformName = "windows"
+	LinuxPlatform   platformName = "linux"
+)
+
 // Operator is an enum of the osquery operators.
 type Operator int
 
-// The following operators are dfined in osquery tables.h.
+// The following operators are defined in osquery tables.h.
 const (
 	OperatorEquals              Operator = 2
 	OperatorGreaterThan                  = 4
@@ -201,6 +220,7 @@ const (
 	OperatorGlob                         = 66
 	OperatorRegexp                       = 67
 	OperatorUnique                       = 1
+	OperatorIn                           = 3
 )
 
 // The following types and functions exist for parsing of the queryContext
