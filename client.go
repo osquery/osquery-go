@@ -70,6 +70,7 @@ func NewClient(path string, socketOpenTimeout time.Duration, opts ...ClientOptio
 			return nil, err
 		}
 
+		c.transport = trans
 		c.client = osquery.NewExtensionManagerClientFactory(
 			trans,
 			thrift.NewTBinaryProtocolFactoryDefault(),
