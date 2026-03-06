@@ -19,8 +19,10 @@ func TestTable_Spec(t *testing.T) {
 		expected string
 	}{
 		{
-			name:   "single text column",
-			plugin: NewPlugin("simple", []ColumnDefinition{TextColumn("simple_text")}, mockGenerate),
+			name: "single text column",
+			plugin: NewPlugin("simple", []ColumnDefinition{TextColumn("simple_text")}, mockGenerate,
+				WithPlatforms(DarwinPlatform),
+			),
 			expected: `{
   "name": "simple",
   "cacheable": false,
@@ -40,7 +42,9 @@ func TestTable_Spec(t *testing.T) {
 				IntegerColumn("pid"),
 				BigIntColumn("size"),
 				DoubleColumn("score"),
-			}, mockGenerate),
+			}, mockGenerate,
+				WithPlatforms(DarwinPlatform),
+			),
 			expected: `{
   "name": "mixed",
   "cacheable": false,
@@ -61,7 +65,9 @@ func TestTable_Spec(t *testing.T) {
 			plugin: NewPlugin("opts", []ColumnDefinition{
 				TextColumn("key", IndexColumn(), RequiredColumn()),
 				IntegerColumn("count", HiddenColumn()),
-			}, mockGenerate),
+			}, mockGenerate,
+				WithPlatforms(DarwinPlatform),
+			),
 			expected: `{
   "name": "opts",
   "cacheable": false,
@@ -103,9 +109,6 @@ func TestTable_Spec(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if len(tt.plugin.platforms) == 0 {
-				tt.plugin.platforms = []platformName{DarwinPlatform}
-			}
 			generatedSpec := tt.plugin.Spec()
 
 			var expectedSpec OsqueryTableSpec

@@ -29,12 +29,12 @@ type ColumnType string
 // The following column types are defined in osquery tables.h.
 const (
 	ColumnTypeUnknown        ColumnType = "UNKNOWN"
-	ColumnTypeText                      = "TEXT"
-	ColumnTypeInteger                   = "INTEGER"
-	ColumnTypeBigInt                    = "BIGINT"
-	ColumnTypeUnsignedBigInt            = "UNSIGNED BIGINT"
-	ColumnTypeDouble                    = "DOUBLE"
-	ColumnTypeBlob                      = "BLOB"
+	ColumnTypeText           ColumnType = "TEXT"
+	ColumnTypeInteger        ColumnType = "INTEGER"
+	ColumnTypeBigInt         ColumnType = "BIGINT"
+	ColumnTypeUnsignedBigInt ColumnType = "UNSIGNED BIGINT"
+	ColumnTypeDouble         ColumnType = "DOUBLE"
+	ColumnTypeBlob           ColumnType = "BLOB"
 )
 
 // jsonString returns the value used when marshaling ColumnType to JSON
