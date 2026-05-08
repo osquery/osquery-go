@@ -2,7 +2,7 @@ module github.com/osquery/osquery-go
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/apache/thrift v0.20.0
+	github.com/apache/thrift v0.23.0
 	github.com/pkg/errors v0.8.0
 	github.com/stretchr/testify v1.8.3
 	go.opentelemetry.io/otel v1.16.0
