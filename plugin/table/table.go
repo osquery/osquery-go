@@ -182,6 +182,30 @@ type QueryContext struct {
 	// Constraints is a map from column name to the details of the
 	// constraints on that column.
 	Constraints map[string]ConstraintList
+
+	// ColumnsUsed contains the columns osquery reports as needed by the query.
+	// If this is nil, the extension should assume all columns may be needed.
+	ColumnsUsed []string
+
+	// ColumnsUsedBitset is the raw SQLite column-use bitset passed through by
+	// osquery. Consumers that need name-based checks should prefer ColumnsUsed.
+	ColumnsUsedBitset *uint64
+}
+
+func (q QueryContext) HasColumnUsage() bool {
+	return q.ColumnsUsed != nil || q.ColumnsUsedBitset != nil
+}
+
+func (q QueryContext) IsColumnUsed(name string) bool {
+	if q.ColumnsUsed == nil {
+		return true
+	}
+	for _, column := range q.ColumnsUsed {
+		if column == name {
+			return true
+		}
+	}
+	return false
 }
 
 // ConstraintList contains the details of the constraints for the given column.
@@ -226,7 +250,9 @@ const (
 // The following types and functions exist for parsing of the queryContext
 // JSON and are not made public.
 type queryContextJSON struct {
-	Constraints []constraintListJSON `json:"constraints"`
+	Constraints       []constraintListJSON `json:"constraints"`
+	ColumnsUsed       []string             `json:"colsUsed"`
+	ColumnsUsedBitset *uint64              `json:"colsUsedBitset"`
 }
 
 type constraintListJSON struct {
@@ -243,7 +269,11 @@ func parseQueryContext(ctxJSON string) (*QueryContext, error) {
 		return nil, errors.Wrap(err, "unmarshaling context JSON")
 	}
 
-	ctx := QueryContext{map[string]ConstraintList{}}
+	ctx := QueryContext{
+		Constraints:       map[string]ConstraintList{},
+		ColumnsUsed:       parsed.ColumnsUsed,
+		ColumnsUsedBitset: parsed.ColumnsUsedBitset,
+	}
 	for _, cList := range parsed.Constraints {
 		constraints, err := parseConstraintList(cList.List)
 		if err != nil {

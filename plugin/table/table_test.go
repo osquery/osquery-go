@@ -57,7 +57,7 @@ func TestTablePlugin(t *testing.T) {
 
 	// Call with good action and context
 	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "generate", "context": "{}"})
-	assert.Equal(t, QueryContext{map[string]ConstraintList{}}, calledQueryCtx)
+	assert.Equal(t, QueryContext{Constraints: map[string]ConstraintList{}}, calledQueryCtx)
 	assert.Equal(t, &StatusOK, resp.Status)
 	assert.Equal(t, osquery.ExtensionPluginResponse{
 		{
@@ -189,7 +189,7 @@ func TestParseQueryContext(t *testing.T) {
     }
   ]
 }`,
-			context: QueryContext{map[string]ConstraintList{
+			context: QueryContext{Constraints: map[string]ConstraintList{
 				"big_int": ConstraintList{ColumnTypeBigInt, []Constraint{}},
 				"double":  ConstraintList{ColumnTypeDouble, []Constraint{}},
 				"integer": ConstraintList{ColumnTypeInteger, []Constraint{}},
@@ -233,7 +233,7 @@ func TestParseQueryContext(t *testing.T) {
   ]
 }
 `,
-			context: QueryContext{map[string]ConstraintList{
+			context: QueryContext{Constraints: map[string]ConstraintList{
 				"big_int": ConstraintList{ColumnTypeBigInt, []Constraint{}},
 				"double":  ConstraintList{ColumnTypeDouble, []Constraint{{OperatorGreaterThanOrEquals, "3.1"}}},
 				"integer": ConstraintList{ColumnTypeInteger, []Constraint{}},
@@ -317,4 +317,42 @@ func TestParseVaryingQueryContexts(t *testing.T) {
 			assert.Equal(t, tt.expectedContext, context)
 		})
 	}
+}
+
+func TestParseQueryContextColumnsUsed(t *testing.T) {
+	context, err := parseQueryContext(`{
+  "constraints": [],
+  "colsUsed": ["source", "session_id"],
+  "colsUsedBitset": 3
+}`)
+	require.NoError(t, err)
+
+	require.NotNil(t, context)
+	require.True(t, context.HasColumnUsage())
+	assert.Equal(t, []string{"source", "session_id"}, context.ColumnsUsed)
+	require.NotNil(t, context.ColumnsUsedBitset)
+	assert.Equal(t, uint64(3), *context.ColumnsUsedBitset)
+	assert.True(t, context.IsColumnUsed("source"))
+	assert.False(t, context.IsColumnUsed("text"))
+}
+
+func TestParseQueryContextEmptyColumnsUsed(t *testing.T) {
+	context, err := parseQueryContext(`{
+  "constraints": [],
+  "colsUsed": [],
+  "colsUsedBitset": 0
+}`)
+	require.NoError(t, err)
+
+	require.NotNil(t, context)
+	require.True(t, context.HasColumnUsage())
+	assert.NotNil(t, context.ColumnsUsed)
+	assert.False(t, context.IsColumnUsed("text"))
+}
+
+func TestQueryContextIsColumnUsedFallback(t *testing.T) {
+	context := QueryContext{Constraints: map[string]ConstraintList{}}
+
+	assert.False(t, context.HasColumnUsage())
+	assert.True(t, context.IsColumnUsed("text"))
 }
