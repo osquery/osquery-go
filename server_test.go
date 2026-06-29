@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -17,6 +18,7 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/osquery/osquery-go/gen/osquery"
 	"github.com/osquery/osquery-go/plugin/logger"
+	"github.com/osquery/osquery-go/plugin/table"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -258,6 +260,101 @@ func TestShutdownBasic(t *testing.T) {
 		}
 
 	}
+}
+
+// TestBufferedTransportFactory verifies that a server configured with a
+// buffering transport factory still parses incoming requests and returns
+// complete responses. The buffered transport only emits on Flush() or when
+// full, so this exercises that the generated processor flushes at each
+// response boundary in both directions.
+func TestBufferedTransportFactory(t *testing.T) {
+	t.Parallel()
+
+	tmp, err := ioutil.TempFile("", "")
+	require.NoError(t, err)
+	sockPath := tmp.Name()
+	defer os.Remove(sockPath)
+
+	retUUID := osquery.ExtensionRouteUUID(0)
+	mock := &MockExtensionManager{
+		RegisterExtensionFunc: func(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+			return &osquery.ExtensionStatus{Code: 0, UUID: retUUID}, nil
+		},
+		DeRegisterExtensionFunc: func(uuid osquery.ExtensionRouteUUID) (*osquery.ExtensionStatus, error) {
+			return &osquery.ExtensionStatus{}, nil
+		},
+		CloseFunc: func() {},
+	}
+
+	// Return enough rows that the response easily exceeds the buffer size,
+	// forcing intermediate flushes as the buffer fills as well as the final
+	// flush at the response boundary.
+	const numRows = 5000
+	gen := func(ctx context.Context, qc table.QueryContext) ([]map[string]string, error) {
+		rows := make([]map[string]string, 0, numRows)
+		for i := 0; i < numRows; i++ {
+			rows = append(rows, map[string]string{
+				"idx":  strconv.Itoa(i),
+				"data": strings.Repeat("x", 64),
+			})
+		}
+		return rows, nil
+	}
+
+	server := &ExtensionManagerServer{
+		serverClient: mock,
+		sockPath:     sockPath,
+		timeout:      defaultTimeout,
+		registry:     map[string](map[string]OsqueryPlugin){},
+		// Small buffer so the large response spans multiple buffer fills.
+		transportFactory: thrift.NewTBufferedTransportFactory(1024),
+	}
+	for reg := range validRegistryNames {
+		server.registry[reg] = make(map[string]OsqueryPlugin)
+	}
+	server.RegisterPlugin(table.NewPlugin("buffered_test", []table.ColumnDefinition{
+		table.TextColumn("idx"),
+		table.TextColumn("data"),
+	}, gen))
+
+	go func() {
+		// Serve may hang after shutdown in this harness; we only care that
+		// the request/response round-trips correctly.
+		_ = server.Start()
+	}()
+	defer server.Shutdown(context.Background())
+
+	server.waitStarted()
+
+	listenPath := fmt.Sprintf("%s.%d", sockPath, retUUID)
+	addr, err := net.ResolveUnixAddr("unix", listenPath)
+	require.NoError(t, err)
+
+	var sock *thrift.TSocket
+	opened := false
+	for attempt := 0; attempt < 10 && !opened; attempt++ {
+		sock = thrift.NewTSocketFromAddrTimeout(addr, 500*time.Millisecond, 500*time.Millisecond)
+		if err = sock.Open(); err != nil {
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		opened = true
+	}
+	require.NoError(t, err)
+
+	client := osquery.NewExtensionManagerClientFactory(sock, thrift.NewTBinaryProtocolFactoryConf(nil))
+
+	resp, err := client.Call(context.Background(), "table", "buffered_test", osquery.ExtensionPluginRequest{
+		"action":  "generate",
+		"context": "{}",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp.Status)
+	require.Equal(t, int32(0), resp.Status.Code, resp.Status.Message)
+	require.Len(t, resp.Response, numRows)
+	require.Equal(t, "0", resp.Response[0]["idx"])
+	require.Equal(t, strings.Repeat("x", 64), resp.Response[0]["data"])
+	require.Equal(t, strconv.Itoa(numRows-1), resp.Response[numRows-1]["idx"])
 }
 
 func TestNewExtensionManagerServer(t *testing.T) {
