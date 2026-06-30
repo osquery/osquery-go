@@ -61,6 +61,7 @@ type ExtensionManagerServer struct {
 	registry                   map[string](map[string]OsqueryPlugin)
 	server                     thrift.TServer
 	transport                  thrift.TServerTransport
+	transportFactory           thrift.TTransportFactory
 	timeout                    time.Duration
 	pingInterval               time.Duration // How often to ping osquery server
 	mutex                      sync.Mutex
@@ -114,6 +115,19 @@ func ServerConnectivityCheckInterval(interval time.Duration) ServerOption {
 func WithClient(client ExtensionManager) ServerOption {
 	return func(s *ExtensionManagerServer) {
 		s.serverClient = client
+	}
+}
+
+// WithTransportFactory sets the thrift transport factory used to wrap the
+// server's input and output transports. By default the server uses an
+// unbuffered (identity) transport factory, which causes the Thrift binary
+// protocol to issue one write syscall per primitive written. Passing a
+// buffering factory such as thrift.NewTBufferedTransportFactory batches those
+// writes until the generated processor flushes at each response boundary,
+// which can dramatically reduce syscall overhead for large result sets.
+func WithTransportFactory(f thrift.TTransportFactory) ServerOption {
+	return func(s *ExtensionManagerServer) {
+		s.transportFactory = f
 	}
 }
 
@@ -232,7 +246,14 @@ func (s *ExtensionManagerServer) Start() error {
 			return openError
 		}
 
-		s.server = thrift.NewTSimpleServer2(processor, s.transport)
+		tf := s.transportFactory
+		if tf == nil {
+			// Preserve the historical unbuffered default.
+			tf = thrift.NewTTransportFactory()
+		}
+		s.server = thrift.NewTSimpleServer4(
+			processor, s.transport, tf, thrift.NewTBinaryProtocolFactoryConf(nil),
+		)
 		server = s.server
 
 		s.started = true
